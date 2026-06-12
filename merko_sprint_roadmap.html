@@ -1,0 +1,924 @@
+
+<h2 class="sr-only">Merko development roadmap — 12 phases from foundation to production deployment, with objectives, features, APIs, components, and acceptance criteria for each phase</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary);font-size:14px}
+.top-bar{display:flex;align-items:center;justify-content:space-between;padding:0 0 16px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.phase-nav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:20px}
+.pnav-btn{font-size:11px;padding:4px 9px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all .15s;white-space:nowrap}
+.pnav-btn.active,.pnav-btn:hover{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.phase-view{display:none}.phase-view.active{display:block}
+.phase-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:0.5px solid var(--color-border-tertiary)}
+.phase-num{min-width:44px;height:44px;border-radius:var(--border-radius-md);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
+.phase-meta{flex:1}
+.phase-title{font-size:17px;font-weight:500;margin-bottom:4px}
+.phase-sub{font-size:13px;color:var(--color-text-secondary);line-height:1.5}
+.meta-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.pill-blue{background:var(--color-background-info);color:var(--color-text-info)}
+.pill-green{background:var(--color-background-success);color:var(--color-text-success)}
+.pill-amber{background:var(--color-background-warning);color:var(--color-text-warning)}
+.pill-gray{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+.pill-red{background:var(--color-background-danger);color:var(--color-text-danger)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:13px 15px;margin-bottom:12px}
+.card-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.item-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px;line-height:1.5}
+.item-row:last-child{border-bottom:none;padding-bottom:0}
+.dot{min-width:6px;height:6px;border-radius:50%;margin-top:5px}
+.dot-blue{background:#378ADD}.dot-green{background:#639922}.dot-amber{background:#BA7517}.dot-gray{background:#888780}.dot-teal{background:#1D9E75}.dot-red{background:#E24B4A}.dot-purple{background:#7F77DD}
+.method{font-size:10px;font-weight:500;padding:1px 6px;border-radius:3px;min-width:36px;text-align:center;flex-shrink:0}
+.get{background:#e1f5ee;color:#0f6e56}.post{background:#e6f1fb;color:#185fa5}.put{background:#faeeda;color:#854f0b}.del{background:#fcebeb;color:#a32d2d}.patch{background:#EEEDFE;color:#534AB7}
+.api-row{display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px}
+.api-row:last-child{border-bottom:none}
+.mono{font-family:var(--font-mono);font-size:11px;color:var(--color-text-secondary)}
+.ac-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.ac-row:last-child{border-bottom:none}
+.check-icon{color:var(--color-text-success);font-size:14px;margin-top:1px;flex-shrink:0}
+.dep-tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;border:0.5px solid var(--color-border-secondary);margin:2px;color:var(--color-text-secondary)}
+.timeline-bar{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.bar-fill{height:8px;border-radius:4px;background:var(--color-background-info)}
+.sprint-label{font-size:12px;color:var(--color-text-secondary);min-width:90px}
+.sprint-num{font-size:12px;font-weight:500;color:var(--color-text-info);min-width:40px;text-align:right}
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px;text-align:center}
+.stat-num{font-size:22px;font-weight:500;color:var(--color-text-info)}
+.stat-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.phase-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer}
+.phase-row:last-child{border-bottom:none}
+.phase-row:hover .pr-title{color:var(--color-text-info)}
+.pr-num{min-width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+.pr-title{font-size:13px;font-weight:500;flex:1;transition:color .15s}
+.pr-time{font-size:12px;color:var(--color-text-secondary);white-space:nowrap}
+.pr-status{font-size:11px;padding:2px 8px;border-radius:10px}
+.gantt-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px}
+.gantt-label{min-width:160px;color:var(--color-text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px}
+.gantt-track{flex:1;background:var(--color-background-secondary);border-radius:3px;height:14px;position:relative}
+.gantt-fill{height:100%;border-radius:3px;position:absolute;top:0}
+.section-divider{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 8px;padding-bottom:4px;border-bottom:0.5px solid var(--color-border-tertiary)}
+</style>
+
+<div class="top-bar">
+  <div>
+    <div style="font-size:17px;font-weight:500">Merko — Development Roadmap</div>
+    <div style="font-size:13px;color:var(--color-text-secondary);margin-top:2px">12 phases · 24 sprints · ~6 months</div>
+  </div>
+  <div style="display:flex;gap:6px">
+    <button class="pnav-btn active" onclick="showPhase('overview',this)">Overview</button>
+    <button class="pnav-btn" onclick="showPhase('gantt',this)">Timeline</button>
+  </div>
+</div>
+
+<div class="phase-nav" id="phase-nav">
+  <button class="pnav-btn" onclick="showPhase('p1',this)">P1 Foundation</button>
+  <button class="pnav-btn" onclick="showPhase('p2',this)">P2 Auth</button>
+  <button class="pnav-btn" onclick="showPhase('p3',this)">P3 Products</button>
+  <button class="pnav-btn" onclick="showPhase('p4',this)">P4 Customization</button>
+  <button class="pnav-btn" onclick="showPhase('p5',this)">P5 Cart</button>
+  <button class="pnav-btn" onclick="showPhase('p6',this)">P6 Payments</button>
+  <button class="pnav-btn" onclick="showPhase('p7',this)">P7 Orders</button>
+  <button class="pnav-btn" onclick="showPhase('p8',this)">P8 Admin</button>
+  <button class="pnav-btn" onclick="showPhase('p9',this)">P9 Notifications</button>
+  <button class="pnav-btn" onclick="showPhase('p10',this)">P10 Preview Engine</button>
+  <button class="pnav-btn" onclick="showPhase('p11',this)">P11 QA & Audit</button>
+  <button class="pnav-btn" onclick="showPhase('p12',this)">P12 Deployment</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="phase-view active" id="overview">
+  <div class="summary-grid">
+    <div class="stat-card"><div class="stat-num">12</div><div class="stat-lbl">Phases</div></div>
+    <div class="stat-card"><div class="stat-num">24</div><div class="stat-lbl">Sprints (1-wk)</div></div>
+    <div class="stat-card"><div class="stat-num">~24</div><div class="stat-lbl">Weeks total</div></div>
+    <div class="stat-card"><div class="stat-num">47</div><div class="stat-lbl">API endpoints</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Phase index — click to jump</div>
+    <div class="phase-row" onclick="showPhase('p1',null)">
+      <div class="pr-num" style="background:var(--color-background-secondary);color:var(--color-text-secondary)">P1</div>
+      <div class="pr-title">Foundation — Monorepo, DB, CI/CD, environments</div>
+      <div class="pr-time">1 week</div>
+      <div class="pr-status pill-gray pill">Sprint 1</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p2',null)">
+      <div class="pr-num" style="background:var(--color-background-info);color:var(--color-text-info)">P2</div>
+      <div class="pr-title">Authentication & RBAC — JWT, OTP, roles</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-blue pill">Sprints 2–3</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p3',null)">
+      <div class="pr-num" style="background:var(--color-background-info);color:var(--color-text-info)">P3</div>
+      <div class="pr-title">Product Management — catalog, variants, search</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-blue pill">Sprints 4–5</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p4',null)">
+      <div class="pr-num" style="background:#EEEDFE;color:#534AB7">P4</div>
+      <div class="pr-title">Dynamic Customization Engine — no-code field builder</div>
+      <div class="pr-time">3 weeks</div>
+      <div class="pr-status" style="background:#EEEDFE;color:#534AB7;font-size:11px;padding:2px 8px;border-radius:10px">Sprints 6–8</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p5',null)">
+      <div class="pr-num" style="background:var(--color-background-info);color:var(--color-text-info)">P5</div>
+      <div class="pr-title">Cart & Checkout — persistent cart, address, coupons</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-blue pill">Sprints 9–10</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p6',null)">
+      <div class="pr-num" style="background:var(--color-background-success);color:var(--color-text-success)">P6</div>
+      <div class="pr-title">Payments — Razorpay, webhooks, idempotency</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-green pill">Sprints 11–12</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p7',null)">
+      <div class="pr-num" style="background:var(--color-background-info);color:var(--color-text-info)">P7</div>
+      <div class="pr-title">Order Management — lifecycle, tracking, history</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-blue pill">Sprints 13–14</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p8',null)">
+      <div class="pr-num" style="background:var(--color-background-warning);color:var(--color-text-warning)">P8</div>
+      <div class="pr-title">Admin Dashboard — product CRUD, order ops, analytics</div>
+      <div class="pr-time">3 weeks</div>
+      <div class="pr-status pill-amber pill">Sprints 15–17</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p9',null)">
+      <div class="pr-num" style="background:var(--color-background-info);color:var(--color-text-info)">P9</div>
+      <div class="pr-title">Notifications — Email, WhatsApp, Push, in-app</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-blue pill">Sprints 18–19</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p10',null)">
+      <div class="pr-num" style="background:#EEEDFE;color:#534AB7">P10</div>
+      <div class="pr-title">Design Preview Engine — canvas, live render, export</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status" style="background:#EEEDFE;color:#534AB7;font-size:11px;padding:2px 8px;border-radius:10px">Sprints 20–21</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p11',null)">
+      <div class="pr-num" style="background:var(--color-background-danger);color:var(--color-text-danger)">P11</div>
+      <div class="pr-title">Testing & Security Audit — QA, pen test, load test</div>
+      <div class="pr-time">2 weeks</div>
+      <div class="pr-status pill-red pill">Sprints 22–23</div>
+    </div>
+    <div class="phase-row" onclick="showPhase('p12',null)">
+      <div class="pr-num" style="background:var(--color-background-success);color:var(--color-text-success)">P12</div>
+      <div class="pr-title">Production Deployment — infra, monitoring, go-live</div>
+      <div class="pr-time">1 week</div>
+      <div class="pr-status pill-green pill">Sprint 24</div>
+    </div>
+  </div>
+</div>
+
+<!-- TIMELINE -->
+<div class="phase-view" id="gantt">
+  <div class="card">
+    <div class="card-title">Gantt — 24 sprints across 12 phases</div>
+    <div id="gantt-chart"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Sprint allocation</div>
+    <div id="sprint-bars"></div>
+  </div>
+</div>
+
+<!-- P1 FOUNDATION -->
+<div class="phase-view" id="p1">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-secondary);color:var(--color-text-primary)">P1</div>
+    <div class="phase-meta">
+      <div class="phase-title">Foundation</div>
+      <div class="phase-sub">Monorepo setup, database configuration, CI/CD pipeline, environment management, and shared infrastructure libraries</div>
+      <div class="meta-row"><span class="pill pill-gray"><i class="ti ti-calendar" style="font-size:11px"></i> Sprint 1</span><span class="pill pill-gray">1 week</span><span class="pill pill-green">No dependencies</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Objectives</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Establish monorepo with apps/api and apps/web workspaces</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Configure PostgreSQL with Prisma ORM and initial schema</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Set up Redis (Upstash) for caching and job queues</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Configure GitHub Actions CI pipeline with quality gates</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Establish dev, staging, and production environments on Vercel + Railway</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Define shared TypeScript types, constants, and error classes</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Backend modules</div>
+      <div class="item-row"><div class="dot dot-teal"></div><div><strong>config/</strong> — env validation with Zod, db client, redis client</div></div>
+      <div class="item-row"><div class="dot dot-teal"></div><div><strong>middleware/</strong> — errorHandler, requestLogger, correlationId</div></div>
+      <div class="item-row"><div class="dot dot-teal"></div><div><strong>shared/</strong> — AppError class, response envelope, paginator util</div></div>
+      <div class="item-row"><div class="dot dot-teal"></div><div><strong>database/</strong> — Prisma client singleton, migration runner</div></div>
+      <div class="item-row"><div class="dot dot-teal"></div><div><strong>health/</strong> — GET /health endpoint (db + redis ping)</div></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Database tables created</div>
+      <div class="item-row"><div class="dot dot-amber"></div>Initial Prisma schema with all enums defined</div>
+      <div class="item-row"><div class="dot dot-amber"></div>users, addresses (schema only, no seed)</div>
+      <div class="item-row"><div class="dot dot-amber"></div>activity_logs for audit trail</div>
+      <div class="item-row"><div class="dot dot-amber"></div>Migration baseline and migration history table</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Frontend scaffold</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Next.js 15 app with TypeScript + Tailwind + Shadcn UI configured</div>
+      <div class="item-row"><div class="dot dot-purple"></div>App Router folder structure established</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Axios API client with interceptors and error handling</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Zustand store skeleton for cart, user, UI state</div>
+      <div class="item-row"><div class="dot dot-purple"></div>TanStack Query provider with default stale times</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">CI/CD gates (must pass before any merge)</div>
+    <div class="item-row"><div class="dot dot-green"></div>ESLint + Prettier — zero errors</div>
+    <div class="item-row"><div class="dot dot-green"></div>TypeScript tsc --noEmit — zero type errors</div>
+    <div class="item-row"><div class="dot dot-green"></div>Jest unit tests — ≥ 80% coverage on shared utils</div>
+    <div class="item-row"><div class="dot dot-green"></div>Prisma schema validate</div>
+    <div class="item-row"><div class="dot dot-green"></div>npm audit — zero high/critical vulnerabilities</div>
+    <div class="item-row"><div class="dot dot-green"></div>Docker build succeeds for API image</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>GET /api/v1/health returns 200 with db:ok and redis:ok in all three environments</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Prisma migrate deploy runs without errors on staging PostgreSQL</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>GitHub Actions CI completes in under 4 minutes on every PR</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Next.js app builds and deploys to Vercel preview URL automatically on PR</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Railway API service deploys from main branch within 5 minutes of push</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Environment variable secrets validated at startup — app refuses to start if missing</div>
+  </div>
+</div>
+
+<!-- P2 AUTH -->
+<div class="phase-view" id="p2">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-info);color:var(--color-text-info)">P2</div>
+    <div class="phase-meta">
+      <div class="phase-title">Authentication & RBAC</div>
+      <div class="phase-sub">Complete auth system: registration with OTP, JWT access + refresh tokens, role-based access control, session management</div>
+      <div class="meta-row"><span class="pill pill-blue">Sprints 2–3</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P1</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Features</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Register with name, email, phone, password</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Phone OTP verification (6-digit, 5-min TTL)</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Login returning access + refresh tokens in httpOnly cookies</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Refresh token rotation — old token invalidated on use</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Forgot password via email OTP flow</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Logout — revoke refresh token from Redis</div>
+      <div class="item-row"><div class="dot dot-blue"></div>RBAC middleware: CUSTOMER, ADMIN, SUPER_ADMIN</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Admin login with TOTP (2FA) — phase 2b</div>
+    </div>
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/register</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/otp/send</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/otp/verify</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/login</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/refresh</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/logout</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/forgot-password</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/api/v1/auth/reset-password</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/api/v1/users/me</span></div>
+      <div class="api-row"><span class="method patch">PATCH</span><span class="mono">/api/v1/users/me</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Frontend pages & components</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/login — LoginForm, email + password, error states</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/register — RegisterForm, multi-step (details → OTP)</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/forgot-password — ForgotPasswordForm</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/reset-password — ResetPasswordForm</div>
+      <div class="item-row"><div class="dot dot-purple"></div>OtpInput component — 6-digit auto-advance input</div>
+      <div class="item-row"><div class="dot dot-purple"></div>AuthGuard HOC — redirect unauthenticated users</div>
+      <div class="item-row"><div class="dot dot-purple"></div>UserMenu — avatar, name, logout in header</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Validation rules</div>
+      <div class="item-row"><div class="dot dot-red"></div>Email: valid format, max 255 chars, unique in DB</div>
+      <div class="item-row"><div class="dot dot-red"></div>Phone: valid Indian mobile (10 digits, starts 6–9)</div>
+      <div class="item-row"><div class="dot dot-red"></div>Password: min 8 chars, 1 uppercase, 1 number, max 72 chars</div>
+      <div class="item-row"><div class="dot dot-red"></div>OTP: exactly 6 digits, numeric, expires 5 min</div>
+      <div class="item-row"><div class="dot dot-red"></div>Max 3 OTP attempts → 15-min lockout in Redis</div>
+      <div class="item-row"><div class="dot dot-red"></div>Rate limit: 5 requests/min on /auth/* endpoints</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Security requirements</div>
+    <div class="item-row"><div class="dot dot-red"></div>bcrypt cost factor 12 — never store plaintext passwords</div>
+    <div class="item-row"><div class="dot dot-red"></div>JWT in httpOnly, Secure, SameSite=Strict cookies — never in localStorage or response body</div>
+    <div class="item-row"><div class="dot dot-red"></div>Refresh tokens stored as SHA-256 hash in Redis — raw token never persisted</div>
+    <div class="item-row"><div class="dot dot-red"></div>Token rotation: every refresh call invalidates previous refresh token</div>
+    <div class="item-row"><div class="dot dot-red"></div>OTP delivery via Twilio SMS — never returned in API response</div>
+    <div class="item-row"><div class="dot dot-red"></div>Timing-safe comparison for OTP verification (prevent timing attacks)</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Registration flow: user receives OTP SMS, verifies, and lands on home with valid session</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Login sets httpOnly cookies — no token visible in JS or response JSON</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Expired access token + valid refresh token → silent re-auth via interceptor without user action</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>After logout, refresh token is deleted from Redis — replay attack returns 401</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>ADMIN role can access /admin/* routes; CUSTOMER role returns 403</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>After 3 failed OTP attempts, account is locked for 15 minutes</div>
+  </div>
+</div>
+
+<!-- P3 PRODUCTS -->
+<div class="phase-view" id="p3">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-info);color:var(--color-text-info)">P3</div>
+    <div class="phase-meta">
+      <div class="phase-title">Product Management</div>
+      <div class="phase-sub">Full product catalog with categories, variants, full-text search, filters, sorting, and Cloudinary image management</div>
+      <div class="meta-row"><span class="pill pill-blue">Sprints 4–5</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P1, P2</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Database tables</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>categories</strong> — id, parentId, name, slug, imageUrl, sortOrder</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>products</strong> — id, categoryId, name, slug, description, basePriceInPaise, sku, isCustomizable, customizationSchema, images, tags, isActive</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>product_variants</strong> — id, productId, name, options (JSONB), priceDeltaPaise, stock, sku</div>
+      <div class="item-row"><div class="dot dot-amber"></div>GIN index on products for full-text search (tsvector on name + description)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/products?page&limit&category&min&max&sort</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/products/search?q=</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/products/:slug</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/products/:id/schema</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/products [admin]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/products/:id [admin]</span></div>
+      <div class="api-row"><span class="method del">DEL</span><span class="mono">/products/:id [admin]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/categories</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/uploads/image [admin]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/products/:id/variants [admin]</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Frontend pages</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/ (home) — hero, category grid, featured products</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/products — listing with filters sidebar + sort</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/products/[slug] — detail: gallery, variants, CTA</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/search — search results page</div>
+      <div class="item-row"><div class="dot dot-purple"></div>ProductCard — image, name, price, rating, quick-add</div>
+      <div class="item-row"><div class="dot dot-purple"></div>ProductGallery — lightbox image viewer</div>
+      <div class="item-row"><div class="dot dot-purple"></div>FilterPanel — category tree, price range slider</div>
+      <div class="item-row"><div class="dot dot-purple"></div>VariantSelector — size/color matrix with stock badges</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Caching strategy</div>
+      <div class="item-row"><div class="dot dot-teal"></div>GET /products — Redis TTL 10 min, cache key includes query params</div>
+      <div class="item-row"><div class="dot dot-teal"></div>GET /products/:slug — Redis TTL 10 min per slug</div>
+      <div class="item-row"><div class="dot dot-teal"></div>GET /categories — Redis TTL 1 hour</div>
+      <div class="item-row"><div class="dot dot-teal"></div>Cache invalidation: admin update → DEL matching keys</div>
+      <div class="item-row"><div class="dot dot-teal"></div>Next.js ISR: product pages revalidate every 5 min</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Search returns results within 300ms for a 1,000-product catalog using PostgreSQL FTS</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Product images served via Cloudinary CDN with auto WebP conversion and srcset</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Stock count decrements correctly when variant is ordered — no oversell in concurrent test</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Admin can create a product with 3 variants and 5 images in under 5 minutes</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Category filter + price range + sort combination returns correctly paginated results</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Soft-deleted (isActive=false) products do not appear in any customer-facing endpoint</div>
+  </div>
+</div>
+
+<!-- P4 CUSTOMIZATION -->
+<div class="phase-view" id="p4">
+  <div class="phase-header">
+    <div class="phase-num" style="background:#EEEDFE;color:#534AB7">P4</div>
+    <div class="phase-meta">
+      <div class="phase-title">Dynamic Customization Engine</div>
+      <div class="phase-sub">The core product differentiator — no-code admin field builder, dynamic frontend renderer, file upload integration, and JSONB schema persistence</div>
+      <div class="meta-row"><span class="pill" style="background:#EEEDFE;color:#534AB7">Sprints 6–8</span><span class="pill pill-gray">3 weeks</span><span class="pill pill-amber">Critical path</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Features</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Admin field builder UI — drag-drop, no code required</div>
+      <div class="item-row"><div class="dot dot-purple"></div>9 field types: text, textarea, number, image, dropdown, checkbox, radio, color picker, dimension</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Per-field validation rules stored in schema</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Preview template config: canvas x/y, font, color per field</div>
+      <div class="item-row"><div class="dot dot-purple"></div>FieldRenderer: dynamic input component from schema</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Image upload to Cloudinary with progress indicator</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Save design to user account for reuse</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Customization data snapshot in order_items (immutable)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Database tables</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>products.customization_schema</strong> — JSONB FieldDefinition[] array (no separate table)</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>design_templates</strong> — id, productId, name, canvasConfig, widthPx, heightPx</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>user_designs</strong> — id, userId, productId, name, customizationData, previewUrl</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>order_items.customization_data</strong> — JSONB snapshot captured at checkout</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/products/:id/schema</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/products/:id/schema [admin]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/uploads/image</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/uploads/file</span></div>
+      <div class="api-row"><span class="method del">DEL</span><span class="mono">/uploads/:publicId</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/designs [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/designs [auth]</span></div>
+      <div class="api-row"><span class="method del">DEL</span><span class="mono">/designs/:id [auth]</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Frontend components</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>FieldBuilder</strong> — admin drag-drop field config UI</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>FieldRenderer</strong> — renders correct input from field.type</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>ImageUploader</strong> — drag-drop, progress bar, Cloudinary upload</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>ColorPicker</strong> — swatch grid + hex input</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>DimensionInput</strong> — width + height with unit selector</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>SavedDesigns</strong> — list and re-apply saved designs</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>CustomizationPanel</strong> — container for all fields + validation</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Validation rules</div>
+    <div class="item-row"><div class="dot dot-red"></div>text/textarea: minLength, maxLength enforced client + server</div>
+    <div class="item-row"><div class="dot dot-red"></div>image upload: MIME type whitelist (jpeg, png, webp), max 5MB, magic byte verification server-side</div>
+    <div class="item-row"><div class="dot dot-red"></div>number / dimension: min, max range checked; non-numeric input rejected</div>
+    <div class="item-row"><div class="dot dot-red"></div>required fields: cannot submit customization with empty required field</div>
+    <div class="item-row"><div class="dot dot-red"></div>dropdown/radio: submitted value must exist in schema options array</div>
+    <div class="item-row"><div class="dot dot-red"></div>schema validation: Zod parse on PUT /products/:id/schema — malformed schema rejected</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Admin creates a 5-field ID Card schema (name, photo, designation, employee ID, department) in under 10 minutes</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>FieldRenderer correctly renders all 9 field types from schema without any code change</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Image upload to Cloudinary completes and returns URL within 3 seconds for a 2MB file</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Customization data is serialized as JSONB and attached to order_item at checkout time</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Changing product schema after order does not affect historical order_items.customization_data</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Saved design can be reloaded and all fields are pre-populated correctly</div>
+  </div>
+</div>
+
+<!-- P5 CART -->
+<div class="phase-view" id="p5">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-info);color:var(--color-text-info)">P5</div>
+    <div class="phase-meta">
+      <div class="phase-title">Cart & Checkout</div>
+      <div class="phase-sub">Persistent DB-backed cart, address management, coupon system, and full checkout flow with order summary</div>
+      <div class="meta-row"><span class="pill pill-blue">Sprints 9–10</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P3, P4</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Database tables</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>carts</strong> — id, userId (unique), updatedAt</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>cart_items</strong> — cartId, variantId, quantity, customizationData, unitPriceInPaise — unique(cartId, variantId)</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>addresses</strong> — fullName, phone, line1, line2, city, state, pincode, isDefault</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>coupons</strong> — code, type, value, minOrderPaise, usageLimit, usedCount, validFrom, validTo</div>
+    </div>
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/cart [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/cart/items [auth]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/cart/items/:id [auth]</span></div>
+      <div class="api-row"><span class="method del">DEL</span><span class="mono">/cart/items/:id [auth]</span></div>
+      <div class="api-row"><span class="method del">DEL</span><span class="mono">/cart/clear [auth]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/addresses [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/addresses [auth]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/addresses/:id [auth]</span></div>
+      <div class="api-row"><span class="method del">DEL</span><span class="mono">/addresses/:id [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/coupons/validate [auth]</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Frontend pages & components</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/cart — full cart page with item list, summary, coupon</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/checkout — address selection → review → payment</div>
+      <div class="item-row"><div class="dot dot-purple"></div>CartDrawer — slide-in cart accessible from header</div>
+      <div class="item-row"><div class="dot dot-purple"></div>CartItem — product image, name, qty stepper, remove</div>
+      <div class="item-row"><div class="dot dot-purple"></div>OrderSummary — subtotal, discount, shipping, total</div>
+      <div class="item-row"><div class="dot dot-purple"></div>AddressForm — Zod-validated address input</div>
+      <div class="item-row"><div class="dot dot-purple"></div>AddressCard — select/edit/delete saved address</div>
+      <div class="item-row"><div class="dot dot-purple"></div>CouponInput — code field with apply + live feedback</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Validation rules</div>
+      <div class="item-row"><div class="dot dot-red"></div>Quantity: min 1, max 50, integer — prevent negative updates</div>
+      <div class="item-row"><div class="dot dot-red"></div>Stock check: AddToCart fails if variant.stock < requested quantity</div>
+      <div class="item-row"><div class="dot dot-red"></div>Coupon: code uppercase trim, check active + date range + usage limit + min order value</div>
+      <div class="item-row"><div class="dot dot-red"></div>Pincode: 6-digit numeric Indian pincode</div>
+      <div class="item-row"><div class="dot dot-red"></div>Price captured at add-to-cart time — stale price alert if product price changes while in cart</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Cart persists across browser sessions and devices when logged in</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Adding same variant twice increments quantity — does not create duplicate cart item</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Valid 20% coupon reduces displayed total in real time before payment</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Checkout blocked if no delivery address selected</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Items out of stock are flagged in cart — user cannot proceed to checkout with them</div>
+  </div>
+</div>
+
+<!-- P6 PAYMENTS -->
+<div class="phase-view" id="p6">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-success);color:var(--color-text-success)">P6</div>
+    <div class="phase-meta">
+      <div class="phase-title">Payments</div>
+      <div class="phase-sub">Razorpay integration with full webhook security, idempotency, retry logic, and refund management</div>
+      <div class="meta-row"><span class="pill pill-green">Sprints 11–12</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P5</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Features & database</div>
+      <div class="item-row"><div class="dot dot-green"></div><strong>payments</strong> table — razorpayOrderId, razorpayPaymentId, razorpaySignature, status, method, capturedAt</div>
+      <div class="item-row"><div class="dot dot-green"></div>Razorpay order creation server-side with idempotency key</div>
+      <div class="item-row"><div class="dot dot-green"></div>HMAC-SHA256 webhook signature verification on raw body</div>
+      <div class="item-row"><div class="dot dot-green"></div>Events handled: payment.captured, payment.failed, refund.processed</div>
+      <div class="item-row"><div class="dot dot-green"></div>Idempotency check: duplicate webhook → 200 no-op</div>
+      <div class="item-row"><div class="dot dot-green"></div>Stock decrement with row-level lock on capture only</div>
+      <div class="item-row"><div class="dot dot-green"></div>Refund initiation via admin panel → Razorpay API</div>
+    </div>
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/payments/create-order [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/payments/verify [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/payments/webhook [razorpay sig]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/payments/:id/refund [admin]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/payments/:orderId [auth]</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Security requirements</div>
+    <div class="item-row"><div class="dot dot-red"></div>Webhook endpoint uses raw body parser — JSON parser breaks HMAC signature verification</div>
+    <div class="item-row"><div class="dot dot-red"></div>No card data stored anywhere — PCI-DSS scope = SAQ A only</div>
+    <div class="item-row"><div class="dot dot-red"></div>Payment amount verified server-side against order total — no client-submitted amounts trusted</div>
+    <div class="item-row"><div class="dot dot-red"></div>Idempotency key stored in Redis (TTL 24hr) — prevents double-charge on network retry</div>
+    <div class="item-row"><div class="dot dot-red"></div>Razorpay key_secret stored in Railway secrets only — never in codebase or logs</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Successful UPI payment: order status transitions to PAYMENT_CONFIRMED within 5 seconds of capture</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Replaying a captured webhook event does not create a duplicate order or double-decrement stock</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Tampered webhook signature returns 400 — no order state change</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Admin-initiated refund reaches REFUNDED status and triggers customer notification</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Payment failure allows retry up to 3 times without creating a new order</div>
+  </div>
+</div>
+
+<!-- P7 ORDERS -->
+<div class="phase-view" id="p7">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-info);color:var(--color-text-info)">P7</div>
+    <div class="phase-meta">
+      <div class="phase-title">Order Management</div>
+      <div class="phase-sub">Full order lifecycle from creation to delivery, status pipeline, cancellation with refund triggers, and customer-facing order tracking</div>
+      <div class="meta-row"><span class="pill pill-blue">Sprints 13–14</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P6</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Database tables</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>orders</strong> — orderNumber, status enum, subtotal, discount, shipping, total (all in paise), notes</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>order_items</strong> — orderId, variantId, quantity, unitPriceInPaise, customizationData (JSONB snapshot), previewUrl</div>
+      <div class="item-row"><div class="dot dot-amber"></div>Order status index: idx on (status, created_at DESC) for admin dashboard queries</div>
+      <div class="item-row"><div class="dot dot-amber"></div>Partition orders table by created_at month for long-term scale</div>
+    </div>
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/orders [auth]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/orders [auth] — paginated history</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/orders/:id [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/orders/:id/cancel [auth]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/orders/:id/status [admin]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/orders/:id/tracking [admin]</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Frontend pages & components</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/orders — order list with status filters and pagination</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/orders/[id] — detail: items, customization preview, tracking</div>
+      <div class="item-row"><div class="dot dot-purple"></div>/order-confirmation — success page with order number</div>
+      <div class="item-row"><div class="dot dot-purple"></div>OrderTimeline — status step indicator (vertical)</div>
+      <div class="item-row"><div class="dot dot-purple"></div>OrderItemCard — product image + customization summary</div>
+      <div class="item-row"><div class="dot dot-purple"></div>CancellationDialog — confirm with reason input</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Order status lifecycle</div>
+      <div class="item-row"><div class="dot dot-gray"></div>PENDING → only payment events advance this</div>
+      <div class="item-row"><div class="dot dot-blue"></div>PAYMENT_CONFIRMED → via webhook capture only</div>
+      <div class="item-row"><div class="dot dot-amber"></div>IN_PRODUCTION → admin manual update</div>
+      <div class="item-row"><div class="dot dot-amber"></div>QUALITY_CHECK → admin manual update</div>
+      <div class="item-row"><div class="dot dot-teal"></div>SHIPPED → admin + tracking number required</div>
+      <div class="item-row"><div class="dot dot-green"></div>DELIVERED → admin confirmation</div>
+      <div class="item-row"><div class="dot dot-red"></div>CANCELLED / REFUNDED → triggers auto-refund job</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Order creation is atomic — cart cleared, order + items + payment record created in one Prisma transaction</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Customer cannot cancel order once status is IN_PRODUCTION or later — UI hides and API returns 409</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Cancellation before production triggers automatic Razorpay refund via Bull MQ job</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Order history loads 20 items per page sorted by created_at DESC in under 200ms</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Customization data (name, photo URL, options) visible in order detail — even for old orders after schema change</div>
+  </div>
+</div>
+
+<!-- P8 ADMIN -->
+<div class="phase-view" id="p8">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-warning);color:var(--color-text-warning)">P8</div>
+    <div class="phase-meta">
+      <div class="phase-title">Admin Dashboard</div>
+      <div class="phase-sub">Complete operations panel: product CRUD, order pipeline management, customer list, coupon management, analytics KPIs, and CSV/PDF export</div>
+      <div class="meta-row"><span class="pill pill-amber">Sprints 15–17</span><span class="pill pill-gray">3 weeks</span><span class="pill pill-gray">Depends on P7</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Admin pages</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/dashboard — KPI cards, revenue chart, top products</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/products — data table with inline quick-edit</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/products/new + /admin/products/[id] — full CRUD form</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/products/[id]/fields — field builder for customization schema</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/orders — filterable order queue with bulk actions</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/orders/[id] — detail with status updater + customization viewer</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/customers — user list with order count + account status</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/coupons — CRUD for coupon codes</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/reviews — moderation queue (approve/reject)</div>
+      <div class="item-row"><div class="dot dot-amber"></div>/admin/gallery — upload and manage portfolio images</div>
+    </div>
+    <div class="card">
+      <div class="card-title">API endpoints</div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/admin/dashboard [admin]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/admin/orders?status&page [admin]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/admin/customers?page [admin]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/admin/analytics?from&to [admin]</span></div>
+      <div class="api-row"><span class="method get">GET</span><span class="mono">/admin/reports/export?type=orders|revenue</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/coupons [admin]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/coupons/:id [admin]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/reviews/:id [admin]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/gallery [admin]</span></div>
+      <div class="api-row"><span class="method put">PUT</span><span class="mono">/admin/customers/:id/status [super_admin]</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Admin key components</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>AdminDataTable</strong> — sortable, filterable, paginated table with Shadcn primitives</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>KpiCard</strong> — revenue, orders, customers today/week/month</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>RevenueChart</strong> — Recharts area chart, daily/weekly/monthly toggle</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>OrderStatusBadge + StatusUpdater</strong> — inline dropdown to advance order status</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>CustomizationDataViewer</strong> — renders order_item.customization_data in human-readable format with image previews</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>FieldBuilder</strong> — admin drag-drop field configuration (shared with P4)</div>
+    <div class="item-row"><div class="dot dot-amber"></div><strong>ExportButton</strong> — triggers CSV or PDF download via API</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Security requirements</div>
+    <div class="item-row"><div class="dot dot-red"></div>All /admin/* routes protected by authorize(ADMIN) middleware — 403 for CUSTOMER role</div>
+    <div class="item-row"><div class="dot dot-red"></div>Customer data export requires SUPER_ADMIN role and is logged in activity_logs</div>
+    <div class="item-row"><div class="dot dot-red"></div>Admin cannot delete their own account or demote their own role</div>
+    <div class="item-row"><div class="dot dot-red"></div>All admin mutations (status changes, refunds) logged to activity_logs with userId + IP</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Dashboard KPIs load within 500ms using aggregation queries with proper indexes</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Admin can update order from PAYMENT_CONFIRMED → SHIPPED in 3 clicks with tracking number saved</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Export of 500 orders as CSV completes and downloads within 5 seconds</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Field builder: admin adds/removes/reorders fields and changes are live on storefront within 30 seconds (cache invalidation)</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>CUSTOMER role attempting /admin/dashboard returns 403 — not 404</div>
+  </div>
+</div>
+
+<!-- P9 NOTIFICATIONS -->
+<div class="phase-view" id="p9">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-info);color:var(--color-text-info)">P9</div>
+    <div class="phase-meta">
+      <div class="phase-title">Notifications</div>
+      <div class="phase-sub">Multi-channel notification system via Bull MQ — transactional email (SendGrid), WhatsApp (Twilio), push (Firebase FCM), and in-app notification feed</div>
+      <div class="meta-row"><span class="pill pill-blue">Sprints 18–19</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P7</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Features & channels</div>
+      <div class="item-row"><div class="dot dot-blue"></div><strong>Email (SendGrid)</strong> — HTML templates for OTP, order confirmed, shipped, delivered, refund</div>
+      <div class="item-row"><div class="dot dot-blue"></div><strong>WhatsApp (Twilio)</strong> — approved template messages for order events and OTP</div>
+      <div class="item-row"><div class="dot dot-blue"></div><strong>Push (Firebase FCM)</strong> — order updates, promotions, delivery alerts</div>
+      <div class="item-row"><div class="dot dot-blue"></div><strong>In-app feed</strong> — notifications table, bell icon badge, mark-as-read</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Bull MQ queues: email-queue, whatsapp-queue, push-queue, db-queue</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Retry strategy: 3 attempts with exponential back-off per channel</div>
+      <div class="item-row"><div class="dot dot-blue"></div>Dead letter queue — failed jobs logged for inspection</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Database & API</div>
+      <div class="item-row"><div class="dot dot-amber"></div><strong>notifications</strong> — userId, title, body, type, entityType, entityId, isRead, createdAt</div>
+      <div class="api-row" style="margin-top:8px"><span class="method get">GET</span><span class="mono">/notifications [auth]</span></div>
+      <div class="api-row"><span class="method patch">PATCH</span><span class="mono">/notifications/:id/read [auth]</span></div>
+      <div class="api-row"><span class="method patch">PATCH</span><span class="mono">/notifications/read-all [auth]</span></div>
+      <div class="api-row"><span class="method post">POST</span><span class="mono">/admin/notifications/broadcast [admin]</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Order confirmation email delivered within 30 seconds of payment.captured webhook</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>WhatsApp order confirmation delivered to customer phone using approved Twilio template</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Failed notification job is retried 3 times; persistent failure lands in dead-letter queue without crashing worker</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>In-app notification bell shows unread count badge; mark-all-read clears it</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Notification worker failure does not block or roll back the triggering order update</div>
+  </div>
+</div>
+
+<!-- P10 PREVIEW ENGINE -->
+<div class="phase-view" id="p10">
+  <div class="phase-header">
+    <div class="phase-num" style="background:#EEEDFE;color:#534AB7">P10</div>
+    <div class="phase-meta">
+      <div class="phase-title">Design Preview Engine</div>
+      <div class="phase-sub">Canvas-based live preview rendering customer data onto product templates, with PNG/PDF export for print-ready files</div>
+      <div class="meta-row"><span class="pill" style="background:#EEEDFE;color:#534AB7">Sprints 20–21</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-gray">Depends on P4</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Features</div>
+      <div class="item-row"><div class="dot dot-purple"></div>LivePreview canvas — renders template + field data in real time</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Text injection — font, size, color, position from previewConfig</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Image injection — uploaded photo placed at configured canvas area</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Background/overlay support — product template image as base layer</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Preview PNG snapshot saved to Cloudinary at order time</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Admin: download print-ready PNG/PDF per order_item from admin panel</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Debounced re-render on field input — max 200ms update latency</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Components & implementation</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>LivePreview</strong> — HTML5 Canvas or Fabric.js component, renders template layers</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>PreviewEngine</strong> — stateless render function: (template, fields, values) → canvas</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>CanvasExporter</strong> — canvas.toBlob → Cloudinary upload → URL returned</div>
+      <div class="item-row"><div class="dot dot-purple"></div><strong>PrintExporter</strong> — server-side: Puppeteer/Sharp pipeline (Bull MQ job)</div>
+      <div class="item-row"><div class="dot dot-purple"></div>Preview snapshot triggered at checkout — before cart cleared</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Text fields update on canvas within 200ms of last keystroke (debounced)</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Uploaded customer photo renders within image bounding box — no overflow outside defined area</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Preview PNG uploaded to Cloudinary at checkout — URL stored in order_items.previewUrl</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Admin can download print-ready PNG from order detail page for any order_item with customization</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Preview renders correctly across Chrome, Firefox, and Safari (cross-browser Canvas API)</div>
+  </div>
+</div>
+
+<!-- P11 QA -->
+<div class="phase-view" id="p11">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-danger);color:var(--color-text-danger)">P11</div>
+    <div class="phase-meta">
+      <div class="phase-title">Testing & Security Audit</div>
+      <div class="phase-sub">End-to-end QA, load testing at 10K user simulation, security penetration test, accessibility audit, and performance optimization</div>
+      <div class="meta-row"><span class="pill pill-red">Sprints 22–23</span><span class="pill pill-gray">2 weeks</span><span class="pill pill-red">All phases complete</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Testing scope</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>Unit tests</strong> — services, utils, validators ≥ 80% coverage</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>Integration tests</strong> — all API endpoints against real test DB (Supertest)</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>E2E tests</strong> — Playwright: register → browse → customize → checkout → order confirmation</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>Load test</strong> — k6: 500 VU ramp-up, product browse + add-to-cart scenario, 10-min sustained</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>Security scan</strong> — OWASP ZAP against staging, review all findings</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>Dependency audit</strong> — npm audit, Snyk scan, resolve all high/critical CVEs</div>
+      <div class="item-row"><div class="dot dot-red"></div><strong>Accessibility</strong> — WAVE tool + manual keyboard navigation audit (WCAG 2.1 AA)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Performance targets (pass/fail gates)</div>
+      <div class="item-row"><div class="dot dot-amber"></div>LCP ≤ 2.5s on product detail page (Lighthouse mobile)</div>
+      <div class="item-row"><div class="dot dot-amber"></div>API P95 response time ≤ 300ms under 500 concurrent VUs</div>
+      <div class="item-row"><div class="dot dot-amber"></div>API error rate ≤ 0.1% during k6 load test</div>
+      <div class="item-row"><div class="dot dot-amber"></div>Zero high/critical security findings from OWASP ZAP</div>
+      <div class="item-row"><div class="dot dot-amber"></div>E2E checkout flow completes in ≤ 4 seconds (excluding payment)</div>
+      <div class="item-row"><div class="dot dot-amber"></div>Core Web Vitals all green on Vercel Speed Insights</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Security checklist</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>All auth endpoints rate-limited; brute force attack test fails to acquire valid session</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>SQL injection payloads in all text inputs return 400 or sanitized response — no DB errors</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>XSS payload in product name/customization field is escaped in all rendering contexts</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>IDOR test: customer A cannot view or modify customer B's orders or cart</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>File upload of .php, .exe, .svg blocked — returns 400</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Razorpay webhook with invalid signature returns 400 — order state unchanged</div>
+  </div>
+</div>
+
+<!-- P12 DEPLOYMENT -->
+<div class="phase-view" id="p12">
+  <div class="phase-header">
+    <div class="phase-num" style="background:var(--color-background-success);color:var(--color-text-success)">P12</div>
+    <div class="phase-meta">
+      <div class="phase-title">Production Deployment</div>
+      <div class="phase-sub">Infrastructure hardening, DNS cutover, monitoring setup, go-live checklist, post-launch hypercare, and runbook documentation</div>
+      <div class="meta-row"><span class="pill pill-green">Sprint 24</span><span class="pill pill-gray">1 week</span><span class="pill pill-red">All phases + P11 pass</span></div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Pre-launch checklist</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>All environment variables set in Railway production secrets</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Razorpay webhook URL registered for production domain</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Cloudinary upload preset configured for production environment</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>SendGrid domain authentication completed (SPF, DKIM)</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Twilio WhatsApp Business account and message templates approved</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Firebase project configured; FCM server key in Railway secrets</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Cloudflare DNS configured; SSL/TLS mode = Full Strict</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>PgBouncer connection pooler deployed in front of PostgreSQL</div>
+      <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>PostgreSQL read replica provisioned and connection string verified</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Monitoring setup</div>
+      <div class="item-row"><div class="dot dot-green"></div>Sentry project created; DSN in both frontend and API</div>
+      <div class="item-row"><div class="dot dot-green"></div>Sentry release tracking wired to GitHub Actions deploy step</div>
+      <div class="item-row"><div class="dot dot-green"></div>Railway alert: CPU > 80% for 5 min → Slack #merko-alerts</div>
+      <div class="item-row"><div class="dot dot-green"></div>Uptime robot: ping /health every 1 min → alert on 2 consecutive failures</div>
+      <div class="item-row"><div class="dot dot-green"></div>Google Analytics 4 tag deployed and conversion events firing</div>
+      <div class="item-row"><div class="dot dot-green"></div>Winston structured logs streaming to Railway log drain</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Go-live acceptance criteria</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>End-to-end production smoke test: register → browse → customize ID card → checkout → payment (Razorpay test mode → live) → confirmation email received</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>GET /api/v1/health returns 200 with db:ok and redis:ok on production URL</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Vercel Speed Insights shows LCP green on first real-user load</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Sentry receives test error and alert fires within 2 minutes to Slack</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Rollback procedure documented and tested: Railway redeploy to previous image completes in under 5 minutes</div>
+    <div class="ac-row"><i class="ti ti-circle-check check-icon"></i>Runbook for common incidents (DB down, payment webhook failure, high memory) written and reviewed by team</div>
+  </div>
+</div>
+
+<script>
+const phaseData = [
+  {id:'p1', label:'Foundation', start:1, dur:1, color:'#888780'},
+  {id:'p2', label:'Auth & RBAC', start:2, dur:2, color:'#378ADD'},
+  {id:'p3', label:'Products', start:4, dur:2, color:'#378ADD'},
+  {id:'p4', label:'Customization Engine', start:6, dur:3, color:'#7F77DD'},
+  {id:'p5', label:'Cart & Checkout', start:9, dur:2, color:'#378ADD'},
+  {id:'p6', label:'Payments', start:11, dur:2, color:'#639922'},
+  {id:'p7', label:'Order Management', start:13, dur:2, color:'#378ADD'},
+  {id:'p8', label:'Admin Dashboard', start:15, dur:3, color:'#BA7517'},
+  {id:'p9', label:'Notifications', start:18, dur:2, color:'#378ADD'},
+  {id:'p10', label:'Preview Engine', start:20, dur:2, color:'#7F77DD'},
+  {id:'p11', label:'QA & Security', start:22, dur:2, color:'#E24B4A'},
+  {id:'p12', label:'Production Deploy', start:24, dur:1, color:'#639922'},
+];
+const totalSprints = 24;
+
+function buildGantt() {
+  const gc = document.getElementById('gantt-chart');
+  if(!gc) return;
+  let h = '';
+  phaseData.forEach(p => {
+    const leftPct = ((p.start-1)/totalSprints*100).toFixed(1);
+    const widPct = (p.dur/totalSprints*100).toFixed(1);
+    h += `<div class="gantt-row"><div class="gantt-label">P${phaseData.indexOf(p)+1} ${p.label}</div><div class="gantt-track"><div class="gantt-fill" style="left:${leftPct}%;width:${widPct}%;background:${p.color}"></div></div><div style="font-size:11px;color:var(--color-text-secondary);min-width:24px;text-align:right">${p.dur}w</div></div>`;
+  });
+  gc.innerHTML = h;
+}
+
+function buildSprintBars() {
+  const sb = document.getElementById('sprint-bars');
+  if(!sb) return;
+  let h = '';
+  phaseData.forEach((p,i) => {
+    const w = Math.round(p.dur/totalSprints*100);
+    h += `<div class="timeline-bar"><div class="sprint-label" style="font-size:12px;color:var(--color-text-secondary)">P${i+1} ${p.label.length>14?p.label.slice(0,14)+'…':p.label}</div><div style="flex:1;background:var(--color-background-secondary);border-radius:4px;height:8px;position:relative"><div style="position:absolute;left:0;top:0;height:8px;border-radius:4px;width:${w}%;background:${p.color}"></div></div><div class="sprint-num">${p.dur}w</div></div>`;
+  });
+  sb.innerHTML = h;
+}
+
+function showPhase(id, btn) {
+  document.querySelectorAll('.phase-view').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.pnav-btn').forEach(b => b.classList.remove('active'));
+  if(btn) {btn.classList.add('active'); return;}
+  document.querySelectorAll('#phase-nav .pnav-btn').forEach(b => {
+    if(b.textContent.toLowerCase().includes(id.slice(1))) b.classList.add('active');
+  });
+  if(id==='overview'||id==='gantt'){
+    document.querySelectorAll('.top-bar .pnav-btn').forEach(b=>{
+      if(b.textContent.toLowerCase().includes(id)) b.classList.add('active');
+    });
+  }
+}
+
+buildGantt();
+buildSprintBars();
+</script>

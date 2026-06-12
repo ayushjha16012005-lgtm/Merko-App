@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: merko-postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: merko
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: merko-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    container_name: merko-api
+    ports:
+      - '4000:4000'
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/merko?schema=public
+      DIRECT_URL: postgresql://postgres:password@postgres:5432/merko?schema=public
+      REDIS_URL: redis://redis:6379
+      PORT: 4000
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  customer:
+    build:
+      context: .
+      dockerfile: ./apps/customer/Dockerfile
+    container_name: merko-customer
+    ports:
+      - '3000:3000'
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api:4000
+    depends_on:
+      - api
+
+  management:
+    build:
+      context: .
+      dockerfile: ./apps/management/Dockerfile
+    container_name: merko-management
+    ports:
+      - '3001:3001'
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://api:4000
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
