@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { Badge, Button, Card, Input, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter, useToast } from '@merko/ui';
 import type { ProductResponseDto } from '@merko/types';
 import { useProducts } from '@/hooks/useProducts';
@@ -10,6 +11,8 @@ import { useCategories } from '@/hooks/useCategories';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrders } from '@/hooks/useOrders';
 import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/hooks/useWishlist';
+import { useUiStore } from '@/stores/ui-store';
 import { 
   ArrowRight, 
   Upload, 
@@ -17,18 +20,78 @@ import {
   Truck, 
   Zap, 
   Heart, 
+  ShoppingCart,
   Star, 
   ChevronRight, 
   Calculator, 
   X,
-  Info
+  Info,
+  Search,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
+import { useLanguage } from '@/contexts/language-context';
+
 export default function HomePage() {
+  const router = useRouter();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
+  const { language, t } = useLanguage();
   const { orders, isLoadingOrders } = useOrders();
-  const { addToCart } = useCart();
+  const { addToCart, totalItemsCount: cartCount } = useCart();
+  const { wishlistedIds, addToWishlist, removeFromWishlist, totalItemsCount: wishlistCount } = useWishlist();
+  const { setCartDrawerOpen } = useUiStore();
+  const suggestionsRef = useRef<HTMLFormElement>(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [greeting, setGreeting] = useState('');
+  const [isGuestAuthModalOpen, setIsGuestAuthModalOpen] = useState(false);
+
+  // Fetch search suggestions
+  const { data: searchProductsData, isLoading: isSearching } = useProducts({
+    search: searchQuery,
+    limit: 5,
+    isActive: true,
+  });
+  const suggestions = searchProductsData?.data || [];
+
+  // Time-based greeting
+  useEffect(() => {
+    const hr = new Date().getHours();
+    let greet = 'Good Morning';
+    if (hr >= 5 && hr < 12) greet = language === 'hi' ? 'शुभ प्रभात' : 'Good Morning';
+    else if (hr >= 12 && hr < 17) greet = language === 'hi' ? 'शुभ दोपहर' : 'Good Afternoon';
+    else if (hr >= 17 && hr < 21) greet = language === 'hi' ? 'शुभ संध्या' : 'Good Evening';
+    else greet = language === 'hi' ? 'शुभ रात्रि' : 'Good Night';
+    const userName = user?.firstName || '';
+    setGreeting(userName ? `${greet}, ${userName} 👋` : `${greet} 👋`);
+  }, [user, isAuthenticated, language]);
+
+  // Click outside suggestions
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setIsFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setIsFocused(false);
+    router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+  };
+
+  const handleSuggestionClick = (productId: string) => {
+    setSearchQuery('');
+    setIsFocused(false);
+    router.push(`/products/${productId}`);
+  };
 
   // Selected Category Pill state
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined);
@@ -43,14 +106,23 @@ export default function HomePage() {
   });
   const products = productsData?.data || [];
 
-  // Local Wishlist state
-  const [wishlisted, setWishlisted] = useState<Record<string, boolean>>({});
-  const toggleWishlist = (id: string, name: string) => {
-    setWishlisted((prev) => {
-      const isVal = !prev[id];
-      toast(isVal ? `Added ${name} to wishlist` : `Removed ${name} from wishlist`, 'info');
-      return { ...prev, [id]: isVal };
-    });
+  const toggleWishlist = async (id: string, name: string) => {
+    if (!isAuthenticated) {
+      toast('Please log in to add items to wishlist.', 'error');
+      return;
+    }
+    const isVal = !wishlistedIds.has(id);
+    try {
+      if (isVal) {
+        await addToWishlist(id);
+        toast(`Added "${name}" to wishlist`, 'success');
+      } else {
+        await removeFromWishlist(id);
+        toast(`Removed "${name}" from wishlist`, 'info');
+      }
+    } catch {
+      toast('Failed to update wishlist.', 'error');
+    }
   };
 
   // Cart action
@@ -101,6 +173,8 @@ export default function HomePage() {
     calculateQuote();
   }, [calculateQuote]);
 
+
+
   interface SavedDesign {
     id: string;
     fileName: string;
@@ -148,10 +222,137 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6 pb-12 bg-white text-slate-900 min-h-screen">
-      
-      {/* 1. Category Pills directly below search bar (top of page content) */}
+      {/* HERO SECTION */}
+      <section className="space-y-4 pt-1">
+        {/* 1. Greeting */}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+            <Sparkles className="h-5 w-5 text-indigo-500 animate-pulse shrink-0" />
+            <span>{greeting || t('hero.welcome')}</span>
+          </h1>
+        </div>
+
+        {/* 2 & 3. Search Bar and Wishlist + Cart Buttons */}
+        {/* Desktop: Search bar + Wishlist + Cart on one row. Mobile: Search bar on row 1, Wishlist + Cart centered on row 2 */}
+        <div className="flex flex-col md:flex-row items-center gap-3.5 w-full">
+          {/* 2. Search Bar */}
+          <form onSubmit={handleSearchSubmit} className="relative w-full md:flex-grow max-w-2xl" ref={suggestionsRef}>
+            <div className="relative flex items-center">
+              <Search className="absolute left-3.5 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder={t('hero.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setIsFocused(true);
+                }}
+                onFocus={() => setIsFocused(true)}
+                className="w-full pl-10 pr-8 py-2 text-xs h-10.5 rounded-xl border border-slate-200/90 bg-slate-50/70 text-slate-900 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 text-slate-450 hover:text-slate-650"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Live Search Suggestions Dropdown */}
+            {isFocused && searchQuery.trim().length >= 2 && (
+              <div className="absolute left-0 right-0 mt-1.5 z-50 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl overflow-hidden backdrop-blur-md animate-in fade-in slide-in-from-top-1 duration-150">
+                {isSearching ? (
+                  <div className="flex items-center justify-center py-6 text-xs text-slate-450 gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                    <span>{t('hero.searching')}</span>
+                  </div>
+                ) : suggestions.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-slate-500 font-medium">
+                    {t('hero.noMatches')}
+                  </div>
+                ) : (
+                  <div className="py-1">
+                    {suggestions.map((p) => {
+                      const image = p.images?.[0]?.imageUrl || p.category?.masterImageUrl || p.category?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=100';
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleSuggestionClick(p.id)}
+                          className="flex items-center w-full px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition gap-3"
+                        >
+                          <div className="relative h-8 w-8 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+                            <Image src={image} alt={p.name} fill className="object-cover" />
+                          </div>
+                          <div className="flex-grow min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{p.name}</p>
+                            <p className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">{p.category?.name || 'Category'}</p>
+                          </div>
+                          <span className="text-xs font-bold text-slate-850 dark:text-slate-100 shrink-0">
+                            ₹{Number(p.basePrice).toFixed(0)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </form>
+
+          {/* 3. Wishlist + Cart Buttons */}
+          <div className="flex items-center justify-center gap-3 w-full md:w-auto shrink-0">
+            {/* Wishlist Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setIsGuestAuthModalOpen(true);
+                } else {
+                  router.push('/wishlist');
+                }
+              }}
+              className="relative flex-1 md:flex-none inline-flex h-10.5 items-center justify-center space-x-2 rounded-xl border border-slate-200/90 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-red-200 px-4 text-xs font-bold text-slate-700 hover:text-red-500 transition shadow-sm shrink-0"
+            >
+              <Heart className="h-4.5 w-4.5 shrink-0 fill-current" />
+              <span>{t('hero.wishlist')}</span>
+              {isAuthenticated && wishlistCount > 0 && (
+                <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white leading-none">
+                  {wishlistCount}
+                </span>
+              )}
+            </button>
+
+            {/* Cart Button */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!isAuthenticated) {
+                  setIsGuestAuthModalOpen(true);
+                } else {
+                  setCartDrawerOpen(true);
+                }
+              }}
+              className="relative flex-1 md:flex-none inline-flex h-10.5 items-center justify-center space-x-2 rounded-xl border border-slate-200/90 bg-white dark:border-slate-800 dark:bg-slate-900 hover:border-indigo-200 px-4 text-xs font-bold text-slate-700 hover:text-indigo-600 transition shadow-sm shrink-0"
+            >
+              <ShoppingCart className="h-4.5 w-4.5 shrink-0" />
+              <span>{t('hero.cart')}</span>
+              {isAuthenticated && cartCount > 0 && (
+                <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-black text-white leading-none">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Categories */}
       <div className="border-b border-slate-100 pb-2">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-hide w-full">
           <button
             onClick={() => setSelectedCategoryId(undefined)}
             className={`flex items-center gap-1.5 shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all ${
@@ -160,7 +361,7 @@ export default function HomePage() {
                 : 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-900 dark:text-slate-350 dark:hover:bg-slate-800'
             }`}
           >
-            🛍️ All Products
+            🛍️ {t('hero.allProducts')}
           </button>
           {categories.map((cat) => {
             const isActive = selectedCategoryId === cat.id;
@@ -184,53 +385,41 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 2. Greeting Section */}
-      <div className="pt-2">
-        <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-          {isAuthenticated && user
-            ? `Good morning, ${user.firstName} 👋`
-            : 'Good morning! 👋'}
-        </h1>
-        <p className="text-xs text-slate-500 font-medium dark:text-slate-400 mt-0.5">
-          What would you like to print today?
-        </p>
-      </div>
-
       {/* 3. Orange + Blue Banner Section */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3.5 md:grid-cols-2 w-full">
         {/* Orange Banner: Business Printing Solutions */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white shadow-md flex justify-between items-center group">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 p-5 sm:p-6 text-white shadow-md flex justify-between items-center group w-full">
           <div className="space-y-1">
             <span className="text-[9px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-              Enterprise
+              {t('hero.enterpriseBadge')}
             </span>
-            <h3 className="text-lg font-black mt-2">Business Printing Solutions</h3>
+            <h3 className="text-lg font-black mt-2">{t('hero.promo1Title')}</h3>
             <p className="text-xs text-orange-50 font-medium leading-relaxed max-w-[280px]">
-              Custom branding, bulk production and corporate merchandise.
+              {t('hero.promo1Desc')}
             </p>
           </div>
           <Link
             href="/products"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition active:scale-95"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition active:scale-95 ml-2"
           >
             <ArrowRight className="h-5 w-5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
         {/* Blue Banner: Free Shipping */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white shadow-md flex justify-between items-center group">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 p-5 sm:p-6 text-white shadow-md flex justify-between items-center group w-full">
           <div className="space-y-1">
             <span className="text-[9px] font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full">
-              Always On
+              {t('hero.alwaysOnBadge')}
             </span>
-            <h3 className="text-lg font-black mt-2">Free Shipping</h3>
+            <h3 className="text-lg font-black mt-2">{t('hero.promo2Title')}</h3>
             <p className="text-xs text-blue-50 font-medium leading-relaxed max-w-[280px]">
-              On all orders above ₹5,000 across India.
+              {t('hero.promo2Desc')}
             </p>
           </div>
           <Link
             href="/products"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition active:scale-95"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition active:scale-95 ml-2"
           >
             <ArrowRight className="h-5 w-5 group-hover:translate-x-0.5 transition-transform" />
           </Link>
@@ -248,8 +437,12 @@ export default function HomePage() {
             <Upload className="h-5 w-5" />
           </div>
           <div className="mt-4">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-orange-500 transition">Upload Design</h4>
-            <p className="mt-0.5 text-[10px] text-slate-500">Customise your artwork</p>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-orange-500 transition">
+              {language === 'hi' ? 'डिज़ाइन अपलोड करें' : 'Upload Design'}
+            </h4>
+            <p className="mt-0.5 text-[10px] text-slate-500">
+              {language === 'hi' ? 'अपनी कलाकृति कस्टमाइज़ करें' : 'Customise your artwork'}
+            </p>
           </div>
         </Link>
 
@@ -262,8 +455,12 @@ export default function HomePage() {
             <RefreshCw className="h-5 w-5" />
           </div>
           <div className="mt-4">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-500 transition">Reorder</h4>
-            <p className="mt-0.5 text-[10px] text-slate-500">Repeat an order</p>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-blue-500 transition">
+              {t('hero.reorder')}
+            </h4>
+            <p className="mt-0.5 text-[10px] text-slate-500">
+              {language === 'hi' ? 'ऑर्डर दोहराएं' : 'Repeat an order'}
+            </p>
           </div>
         </Link>
 
@@ -276,8 +473,12 @@ export default function HomePage() {
             <Truck className="h-5 w-5" />
           </div>
           <div className="mt-4">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition">Track Order</h4>
-            <p className="mt-0.5 text-[10px] text-slate-500">Live tracking</p>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition">
+              {language === 'hi' ? 'ऑर्डर ट्रैक करें' : 'Track Order'}
+            </h4>
+            <p className="mt-0.5 text-[10px] text-slate-500">
+              {language === 'hi' ? 'लाइव ट्रैकिंग' : 'Live tracking'}
+            </p>
           </div>
         </Link>
 
@@ -290,8 +491,12 @@ export default function HomePage() {
             <Zap className="h-5 w-5" />
           </div>
           <div className="mt-4">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-500 transition">Quick Quote</h4>
-            <p className="mt-0.5 text-[10px] text-slate-500">Get pricing now</p>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-500 transition">
+              {t('hero.quickQuote')}
+            </h4>
+            <p className="mt-0.5 text-[10px] text-slate-500">
+              {language === 'hi' ? 'मूल्य प्राप्त करें' : 'Get pricing now'}
+            </p>
           </div>
         </button>
       </div>
@@ -300,10 +505,10 @@ export default function HomePage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-            Shop by Category
+            {language === 'hi' ? 'श्रेणी अनुसार खरीदें' : 'Shop by Category'}
           </h2>
           <Link href="/products" className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center gap-0.5 transition">
-            See all <ChevronRight className="h-4.5 w-4.5" />
+            {language === 'hi' ? 'सभी देखें' : 'See all'} <ChevronRight className="h-4.5 w-4.5" />
           </Link>
         </div>
 
@@ -338,10 +543,10 @@ export default function HomePage() {
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-            Featured Products
+            {language === 'hi' ? 'विशेष उत्पाद' : 'Featured Products'}
           </h2>
           <Link href="/products" className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center gap-0.5 transition">
-            See all <ChevronRight className="h-4.5 w-4.5" />
+            {language === 'hi' ? 'सभी देखें' : 'See all'} <ChevronRight className="h-4.5 w-4.5" />
           </Link>
         </div>
 
@@ -359,14 +564,36 @@ export default function HomePage() {
           <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             {products.map((p) => {
               const { rating, count } = getRatingData(p.id);
-              const isFav = !!wishlisted[p.id];
-              const image = p.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=400';
+              const isFav = wishlistedIds.has(p.id);
+              const image = p.images?.[0]?.imageUrl || p.category?.masterImageUrl || p.category?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=400';
               
               // Dynamic badges
               let badgeText = 'NEW';
               if (p.category?.slug.includes('creative')) badgeText = 'POPULAR';
               else if (p.category?.slug.includes('modern')) badgeText = 'BEST SELLER';
               else if (p.category?.slug.includes('birthday')) badgeText = 'PREMIUM';
+
+              // Parse crop config
+              let cropStyle: React.CSSProperties = {};
+              if (p.cropConfig) {
+                try {
+                  const crop = JSON.parse(p.cropConfig);
+                  const width = crop.width || 100;
+                  const height = crop.height || 100;
+                  const left = crop.left || 0;
+                  const top = crop.top || 0;
+                  const scaleX = 100 / width;
+                  const scaleY = 100 / height;
+                  cropStyle = {
+                    width: `${scaleX * 100}%`,
+                    height: `${scaleY * 100}%`,
+                    left: `${-left * scaleX}%`,
+                    top: `${-top * scaleY}%`,
+                    maxWidth: 'none',
+                    position: 'absolute'
+                  };
+                } catch (e) {}
+              }
 
               return (
                 <div 
@@ -375,13 +602,18 @@ export default function HomePage() {
                 >
                   {/* Image and Badges */}
                   <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
-                    <Image
-                      src={image}
-                      alt={p.name}
-                      fill
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      sizes="(max-width: 768px) 100vw, 25vw"
-                    />
+                    <div 
+                      className="absolute inset-0"
+                      style={Object.keys(cropStyle).length > 0 ? cropStyle : undefined}
+                    >
+                      <Image
+                        src={image}
+                        alt={p.name}
+                        fill
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 25vw"
+                      />
+                    </div>
                     {/* Top Left Tag */}
                     <div className="absolute left-2.5 top-2.5">
                       <Badge className="bg-orange-500 text-white font-black text-[8px] tracking-widest px-2 py-0.5 rounded-full border-none">
@@ -426,7 +658,7 @@ export default function HomePage() {
                         className="border-orange-500 text-orange-500 hover:bg-orange-50 hover:text-orange-600 font-bold text-[10px] h-8"
                         asChild
                       >
-                        <Link href={`/products/${p.id}`}>Customize</Link>
+                        <Link href={`/products/${p.id}`}>{language === 'hi' ? 'कस्टमाइज़' : 'Customize'}</Link>
                       </Button>
                       <Button
                         size="sm"
@@ -434,7 +666,7 @@ export default function HomePage() {
                         onClick={() => handleAddToCart(p)}
                         className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-[10px] h-8"
                       >
-                        {addingId === p.id ? 'Adding...' : 'Add'}
+                        {addingId === p.id ? t('products.adding') : (language === 'hi' ? 'जोड़ें' : 'Add')}
                       </Button>
                     </div>
                   </div>
@@ -450,10 +682,10 @@ export default function HomePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-              Recent Orders
+              {language === 'hi' ? 'हाल के ऑर्डर' : 'Recent Orders'}
             </h2>
             <Link href="/orders" className="text-xs font-bold text-orange-500 hover:text-orange-600 flex items-center gap-0.5 transition">
-              See all <ChevronRight className="h-4.5 w-4.5" />
+              {language === 'hi' ? 'सभी देखें' : 'See all'} <ChevronRight className="h-4.5 w-4.5" />
             </Link>
           </div>
 
@@ -555,7 +787,7 @@ export default function HomePage() {
                 className="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
               >
                 <div className="relative aspect-[1.8/1] w-full bg-slate-50 dark:bg-slate-950">
-                  <Image src={design.fileUrl} alt={design.fileName} fill className="object-cover" />
+                  <img src={design.fileUrl} alt={design.fileName} className="absolute inset-0 h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-1 flex-col justify-between p-4 bg-white dark:bg-slate-900">
                   <div>
@@ -571,7 +803,7 @@ export default function HomePage() {
                       {design.productName}
                     </span>
                     <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-[9px] h-7 px-3" asChild>
-                      <Link href={`/products`}>Reorder</Link>
+                      <Link href={`/products`}>{t('hero.reorder')}</Link>
                     </Button>
                   </div>
                 </div>
@@ -592,33 +824,33 @@ export default function HomePage() {
           </button>
           <DialogTitle className="flex items-center gap-2">
             <Calculator className="h-5 w-5 text-orange-500" />
-            <span>Quick Quote Calculator</span>
+            <span>{t('hero.calculatorTitle')}</span>
           </DialogTitle>
           <DialogDescription className="text-xs text-slate-500">
-            Get instant price estimations for bulk orders including default volume discounts.
+            {t('hero.calculatorDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="my-4 space-y-4">
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-              Product Category
+              {t('hero.categoryLabel')}
             </label>
             <select
               value={quoteCategory}
               onChange={(e) => setQuoteCategory(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-900 focus:border-orange-500 outline-none dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
             >
-              <option value="">Select a category</option>
-              <option value="shirts">Custom Apparel (T-Shirts)</option>
-              <option value="cards">Matte Business Cards</option>
-              <option value="cups">Ceramic Mugs</option>
+              <option value="">{language === 'hi' ? 'श्रेणी चुनें' : 'Select a category'}</option>
+              <option value="shirts">{language === 'hi' ? 'कस्टम परिधान (टी-शर्ट)' : 'Custom Apparel (T-Shirts)'}</option>
+              <option value="cards">{language === 'hi' ? 'मैट बिजनेस कार्ड' : 'Matte Business Cards'}</option>
+              <option value="cups">{language === 'hi' ? 'सिरेमिक मग' : 'Ceramic Mugs'}</option>
             </select>
           </div>
 
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
-              Quantity units
+              {t('hero.quantityLabel')}
             </label>
             <Input
               type="number"
@@ -633,14 +865,14 @@ export default function HomePage() {
           {estimatedPrice !== null && quoteCategory && (
             <div className="rounded-xl bg-orange-50 p-4 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Estimated Total:</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('hero.estimatedTotal')}:</span>
                 <span className="text-lg font-black text-orange-600 dark:text-orange-400">
                   ₹{estimatedPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                 </span>
               </div>
               <p className="mt-1.5 text-[9px] text-slate-450 flex items-center gap-1">
                 <Info className="h-3 w-3" />
-                <span>Includes tiered volume discounts. Taxes & shipping calculated at checkout.</span>
+                <span>{t('hero.quoteInfo')}</span>
               </p>
             </div>
           )}
@@ -652,16 +884,45 @@ export default function HomePage() {
             className="w-full text-xs font-bold" 
             onClick={() => setIsQuoteOpen(false)}
           >
-            Close
+            {t('hero.close')}
           </Button>
           <Button 
             className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs"
             onClick={() => {
               setIsQuoteOpen(false);
-              toast('Quote applied. Please select variants in catalog.', 'success');
+              toast(t('hero.quoteApplied'), 'success');
             }}
           >
-            Browse Blanks
+            {t('hero.browseBlanks')}
+          </Button>
+        </DialogFooter>
+      </Dialog>
+
+      {/* GUEST AUTHENTICATION MODAL DIALOG */}
+      <Dialog isOpen={isGuestAuthModalOpen} onClose={() => setIsGuestAuthModalOpen(false)}>
+        <DialogHeader className="text-center sm:text-center pt-2">
+          <DialogTitle className="text-lg font-black text-slate-900 dark:text-white">
+            {t('auth.guestModalTitle')}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-600 dark:text-slate-400 mt-2 font-medium">
+            {t('auth.guestModalDesc')}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2.5 justify-center mt-6 w-full pb-2">
+          <Button
+            asChild
+            className="w-full sm:w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs h-10 rounded-xl shadow-sm border-none"
+            onClick={() => setIsGuestAuthModalOpen(false)}
+          >
+            <Link href="/login">{t('header.login')}</Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="w-full sm:w-1/2 font-bold text-xs h-10 rounded-xl border-slate-200 hover:bg-slate-50 dark:border-slate-800"
+            onClick={() => setIsGuestAuthModalOpen(false)}
+          >
+            <Link href="/register">{t('header.register')}</Link>
           </Button>
         </DialogFooter>
       </Dialog>

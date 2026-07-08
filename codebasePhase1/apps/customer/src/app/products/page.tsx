@@ -1,24 +1,42 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { Badge, Button, Card, CardContent, Select, useToast } from '@merko/ui';
 import type { ProductResponseDto } from '@merko/types';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
+import { useWishlist } from '@/hooks/useWishlist';
 import { SlidersHorizontal, RefreshCw, XCircle, Heart, Star, Search } from 'lucide-react';
+import { useLanguage } from '@/contexts/language-context';
 
-export default function ProductsPage() {
+function ProductsCatalog() {
   const { toast } = useToast();
   const { addToCart } = useCart();
+  const { language, t } = useLanguage();
+  const searchParams = useSearchParams();
 
-  const [searchVal, setSearchVal] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const initialSearch = searchParams?.get('search') || '';
+  const initialCategory = searchParams?.get('categoryId') || 'all';
+
+  const [searchVal, setSearchVal] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [sortBy, setSortBy] = useState<string>('featured');
   const [page, setPage] = useState(1);
+
+  // Sync state with search params from URL
+  useEffect(() => {
+    const q = searchParams?.get('search') || '';
+    const cat = searchParams?.get('categoryId') || 'all';
+    setSearchVal(q);
+    setDebouncedSearch(q);
+    setSelectedCategory(cat);
+  }, [searchParams]);
   const limit = 9; // Show 9 items per page for a clean 3x3 grid on desktop
 
   // Debounce search input
@@ -51,14 +69,25 @@ export default function ProductsPage() {
   const productsResponse = productsData?.data || [];
   const pagination = productsData?.pagination;
 
-  // Local Wishlist state
-  const [wishlisted, setWishlisted] = useState<Record<string, boolean>>({});
-  const toggleWishlist = (id: string, name: string) => {
-    setWishlisted((prev) => {
-      const isVal = !prev[id];
-      toast(isVal ? `Added ${name} to wishlist` : `Removed ${name} from wishlist`, 'info');
-      return { ...prev, [id]: isVal };
-    });
+  const { isAuthenticated } = useAuth();
+  const { wishlistedIds, addToWishlist, removeFromWishlist } = useWishlist();
+  const toggleWishlist = async (id: string, name: string) => {
+    if (!isAuthenticated) {
+      toast(t('products.loginToWishlist'), 'error');
+      return;
+    }
+    const isVal = !wishlistedIds.has(id);
+    try {
+      if (isVal) {
+        await addToWishlist(id);
+        toast(language === 'hi' ? `"${name}" इच्छा-सूची में जोड़ा गया` : `Added "${name}" to wishlist`, 'success');
+      } else {
+        await removeFromWishlist(id);
+        toast(language === 'hi' ? `"${name}" इच्छा-सूची से हटाया गया` : `Removed "${name}" from wishlist`, 'info');
+      }
+    } catch {
+      toast(t('toasts.genericError'), 'error');
+    }
   };
 
   // Cart action
@@ -66,7 +95,7 @@ export default function ProductsPage() {
   const handleAddToCart = async (p: ProductResponseDto) => {
     const variantId = p.variants?.[0]?.id;
     if (!variantId) {
-      toast('No default variant found for this product.', 'error');
+      toast(language === 'hi' ? 'इस उत्पाद के लिए कोई डिफ़ॉल्ट विकल्प नहीं मिला।' : 'No default variant found for this product.', 'error');
       return;
     }
     setAddingId(p.id);
@@ -75,9 +104,9 @@ export default function ProductsPage() {
         productVariantId: variantId,
         quantity: 1
       });
-      toast(`Added ${p.name} to cart!`, 'success');
+      toast(language === 'hi' ? `${p.name} कार्ट में जोड़ा गया!` : `Added ${p.name} to cart!`, 'success');
     } catch {
-      toast('Please log in to add items to cart.', 'error');
+      toast(t('products.loginToCart'), 'error');
     } finally {
       setAddingId(null);
     }
@@ -125,10 +154,10 @@ export default function ProductsPage() {
       <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-            Product Catalog
+            {t('products.title')}
           </h1>
           <p className="mt-0.5 text-xs text-slate-500 font-medium dark:text-slate-400">
-            Browse our curated library of premium blanks, customizable templates, and raw materials.
+            {language === 'hi' ? 'प्रीमियम ब्लैंक्स, कस्टमाइज़ करने योग्य टेम्प्लेट और कच्चे माल की हमारी क्यूरेटेड लाइब्रेरी ब्राउज़ करें।' : 'Browse our curated library of premium blanks, customizable templates, and raw materials.'}
           </p>
         </div>
 
@@ -137,7 +166,7 @@ export default function ProductsPage() {
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search catalog..."
+            placeholder={t('hero.searchPlaceholder')}
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs h-9 rounded-lg border border-slate-200 bg-slate-50/50 text-slate-900 focus:bg-white focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-50"
@@ -152,7 +181,7 @@ export default function ProductsPage() {
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3">
               <h2 className="flex items-center gap-1.5 font-black text-slate-800 dark:text-white text-xs uppercase tracking-wider">
                 <SlidersHorizontal className="h-4 w-4 text-orange-500" />
-                Filters
+                {language === 'hi' ? 'फ़िल्टर' : 'Filters'}
               </h2>
               {(selectedCategory !== 'all' || searchVal || sortBy !== 'featured') && (
                 <button
@@ -163,7 +192,7 @@ export default function ProductsPage() {
                   }}
                   className="text-xs font-bold text-orange-500 hover:text-orange-600 transition"
                 >
-                  Reset
+                  {language === 'hi' ? 'रीसेट करें' : 'Reset'}
                 </button>
               )}
             </div>
@@ -171,7 +200,7 @@ export default function ProductsPage() {
             {/* Categories filter */}
             <div className="mt-4 space-y-3">
               <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Categories
+                {language === 'hi' ? 'श्रेणियां' : 'Categories'}
               </h3>
               <div className="flex flex-col gap-1">
                 <button
@@ -185,7 +214,7 @@ export default function ProductsPage() {
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400'
                   }`}
                 >
-                  🛍️ All Categories
+                  🛍️ {language === 'hi' ? 'सभी श्रेणियां' : 'All Categories'}
                 </button>
                 {categoriesLoading ? (
                   [1, 2, 3].map((n) => (
@@ -220,17 +249,17 @@ export default function ProductsPage() {
             {/* Sorting Filter */}
             <div className="mt-6 space-y-2.5">
               <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                Sort By
+                {language === 'hi' ? 'क्रमबद्ध करें' : 'Sort By'}
               </h3>
               <Select
                 value={sortBy}
                 onChange={setSortBy}
                 options={[
-                  { value: 'featured', label: 'Featured Natural' },
-                  { value: 'price_asc', label: 'Price: Low to High' },
-                  { value: 'price_desc', label: 'Price: High to Low' },
-                  { value: 'name_asc', label: 'Name: A to Z' },
-                  { value: 'name_desc', label: 'Name: Z to A' },
+                  { value: 'featured', label: language === 'hi' ? 'विशेष रूप से प्रदर्शित' : 'Featured Natural' },
+                  { value: 'price_asc', label: language === 'hi' ? 'कीमत: कम से अधिक' : 'Price: Low to High' },
+                  { value: 'price_desc', label: language === 'hi' ? 'कीमत: अधिक से कम' : 'Price: High to Low' },
+                  { value: 'name_asc', label: language === 'hi' ? 'वर्णानुक्रम: A से Z' : 'Name: A to Z' },
+                  { value: 'name_desc', label: language === 'hi' ? 'वर्णानुक्रम: Z से A' : 'Name: Z to A' },
                 ]}
               />
             </div>
@@ -244,12 +273,12 @@ export default function ProductsPage() {
             <Card className="py-16 text-center border-red-100 bg-red-50/10">
               <CardContent className="space-y-4">
                 <XCircle className="mx-auto h-12 w-12 text-red-500" />
-                <h3 className="text-base font-bold text-slate-900">API Connection Failed</h3>
+                <h3 className="text-base font-bold text-slate-900">{language === 'hi' ? 'एपीआई कनेक्शन विफल' : 'API Connection Failed'}</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Unable to connect to the database. Ensure the API server is active.
+                  {language === 'hi' ? 'डेटाबेस से कनेक्ट करने में असमर्थ। सुनिश्चित करें कि एपीआई सर्वर सक्रिय है।' : 'Unable to connect to the database. Ensure the API server is active.'}
                 </p>
                 <Button size="sm" onClick={() => refetchProducts()} className="flex items-center gap-1.5 mx-auto bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs h-9">
-                  <RefreshCw className="h-4 w-4" /> Retry Connection
+                  <RefreshCw className="h-4 w-4" /> {language === 'hi' ? 'कनेक्शन पुन: प्रयास करें' : 'Retry Connection'}
                 </Button>
               </CardContent>
             </Card>
@@ -280,9 +309,9 @@ export default function ProductsPage() {
             <Card className="py-20 text-center border-slate-200 bg-slate-50/30">
               <CardContent>
                 <span className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl mx-auto">🔍</span>
-                <h3 className="mt-5 text-lg font-bold text-slate-900 dark:text-white">No Products Found</h3>
+                <h3 className="mt-5 text-lg font-bold text-slate-900 dark:text-white">{language === 'hi' ? 'कोई उत्पाद नहीं मिला' : 'No Products Found'}</h3>
                 <p className="mt-2 text-xs text-slate-500 max-w-xs mx-auto">
-                  We couldn&apos;t find any products matching your active filters. Try clearing your search parameters.
+                  {language === 'hi' ? 'हमें आपके सक्रिय फ़िल्टर से मेल खाने वाले कोई भी उत्पाद नहीं मिले। अपने खोज मापदंडों को रीसेट करने का प्रयास करें।' : "We couldn't find any products matching your active filters. Try clearing your search parameters."}
                 </p>
                 <Button
                   size="sm"
@@ -292,7 +321,7 @@ export default function ProductsPage() {
                     setSearchVal('');
                   }}
                 >
-                  Clear All Filters
+                  {language === 'hi' ? 'सभी फ़िल्टर साफ़ करें' : 'Clear All Filters'}
                 </Button>
               </CardContent>
             </Card>
@@ -303,8 +332,8 @@ export default function ProductsPage() {
             <div className="grid gap-4 grid-cols-2 xl:grid-cols-3">
               {sortedProducts.map((p) => {
                 const { rating, count } = getRatingData(p.id);
-                const isFav = !!wishlisted[p.id];
-                const image = p.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=400';
+                const isFav = wishlistedIds.has(p.id);
+                const image = p.images?.[0]?.imageUrl || p.category?.masterImageUrl || p.category?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=400';
                 
                 // Check if all variants are out of stock
                 const isOutOfStock = !p.variants || p.variants.length === 0 || p.variants.every((v: { stock?: number }) => (v.stock ?? 0) <= 0);
@@ -315,6 +344,28 @@ export default function ProductsPage() {
                 else if (p.category?.slug.includes('modern')) badgeText = 'BEST SELLER';
                 else if (p.category?.slug.includes('birthday')) badgeText = 'PREMIUM';
 
+                // Parse crop config
+                let cropStyle: React.CSSProperties = {};
+                if (p.cropConfig) {
+                  try {
+                    const crop = JSON.parse(p.cropConfig);
+                    const width = crop.width || 100;
+                    const height = crop.height || 100;
+                    const left = crop.left || 0;
+                    const top = crop.top || 0;
+                    const scaleX = 100 / width;
+                    const scaleY = 100 / height;
+                    cropStyle = {
+                      width: `${scaleX * 100}%`,
+                      height: `${scaleY * 100}%`,
+                      left: `${-left * scaleX}%`,
+                      top: `${-top * scaleY}%`,
+                      maxWidth: 'none',
+                      position: 'absolute'
+                    };
+                  } catch (e) {}
+                }
+
                 return (
                   <div 
                     key={p.id}
@@ -322,17 +373,22 @@ export default function ProductsPage() {
                   >
                     {/* Image Container */}
                     <div className="relative aspect-square w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
-                      <Image
-                        src={image}
-                        alt={p.name}
-                        fill
-                        className="object-cover transition duration-500 group-hover:scale-105"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
+                      <div
+                        className="absolute inset-0"
+                        style={Object.keys(cropStyle).length > 0 ? cropStyle : undefined}
+                      >
+                        <Image
+                          src={image}
+                          alt={p.name}
+                          fill
+                          className="object-cover transition duration-500 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                      </div>
                       {/* Top Left Tag */}
                       <div className="absolute left-2.5 top-2.5">
                         <Badge className={`${isOutOfStock ? 'bg-slate-500' : 'bg-orange-500'} text-white font-black text-[8px] tracking-widest px-2 py-0.5 rounded-full border-none`}>
-                          {isOutOfStock ? 'SOLD OUT' : badgeText}
+                          {isOutOfStock ? (language === 'hi' ? 'बिक गया' : 'SOLD OUT') : badgeText}
                         </Badge>
                       </div>
                       {/* Wishlist Icon */}
@@ -362,7 +418,7 @@ export default function ProductsPage() {
 
                       <div className="mt-2.5 text-xs font-bold text-slate-900 dark:text-white">
                         ₹{Number(p.basePrice).toFixed(0)}
-                        <span className="text-[9px] text-slate-400 font-medium">/unit</span>
+                        <span className="text-[9px] text-slate-400 font-medium">{language === 'hi' ? '/इकाई' : '/unit'}</span>
                       </div>
 
                       {/* Action buttons */}
@@ -373,7 +429,7 @@ export default function ProductsPage() {
                           className="border-orange-500 text-orange-500 hover:bg-orange-50 hover:text-orange-600 font-bold text-[10px] h-8"
                           asChild
                         >
-                          <Link href={`/products/${p.id}`}>Customize</Link>
+                          <Link href={`/products/${p.id}`}>{language === 'hi' ? 'कस्टमाइज़' : 'Customize'}</Link>
                         </Button>
                         <Button
                           size="sm"
@@ -381,7 +437,7 @@ export default function ProductsPage() {
                           onClick={() => handleAddToCart(p)}
                           className={`${isOutOfStock ? 'bg-slate-100 text-slate-450 hover:bg-slate-150 border-none cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' : 'bg-orange-500 hover:bg-orange-600 text-white'} font-bold text-[10px] h-8`}
                         >
-                          {addingId === p.id ? 'Adding...' : isOutOfStock ? 'Sold Out' : 'Add'}
+                          {addingId === p.id ? t('products.adding') : isOutOfStock ? (language === 'hi' ? 'बिक गया' : 'Sold Out') : (language === 'hi' ? 'जोड़ें' : 'Add')}
                         </Button>
                       </div>
                     </div>
@@ -401,7 +457,7 @@ export default function ProductsPage() {
                 disabled={page === 1}
                 className="text-xs font-bold h-9"
               >
-                Previous
+                {language === 'hi' ? 'पिछला' : 'Previous'}
               </Button>
               {Array.from({ length: pagination.pages }).map((_, idx) => (
                 <Button
@@ -421,12 +477,24 @@ export default function ProductsPage() {
                 disabled={page === pagination.pages}
                 className="text-xs font-bold h-9"
               >
-                Next
+                {language === 'hi' ? 'अगला' : 'Next'}
               </Button>
             </div>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center h-48">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      </div>
+    }>
+      <ProductsCatalog />
+    </Suspense>
   );
 }

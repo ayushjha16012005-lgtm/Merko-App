@@ -2,6 +2,21 @@ import type { Product } from '@prisma/client';
 import { prisma } from '@/config/db';
 import type { CreateProductInput, UpdateProductInput } from '@/middleware/validators';
 
+function inheritCategoryImages(product: any): any {
+  if (!product || !product.category) return product;
+  const category = product.category;
+  return {
+    ...product,
+    image1: product.image1 || category.masterImage1 || null,
+    image2: product.image2 || category.masterImage2 || null,
+    image3: product.image3 || category.masterImage3 || null,
+    image4: product.image4 || category.masterImage4 || null,
+    image5: product.image5 || category.masterImage5 || null,
+    image6: product.image6 || category.masterImage6 || null,
+    image7: product.image7 || category.masterImage7 || null,
+  };
+}
+
 export class ProductsRepository {
   async findAll(
     search?: string,
@@ -22,6 +37,9 @@ export class ProductsRepository {
           { name: { contains: search, ...(searchMode && { mode: searchMode }) } },
           { slug: { contains: search, ...(searchMode && { mode: searchMode }) } },
           { description: { contains: search, ...(searchMode && { mode: searchMode }) } },
+          { category: { name: { contains: search, ...(searchMode && { mode: searchMode }) } } },
+          { subcategory: { name: { contains: search, ...(searchMode && { mode: searchMode }) } } },
+          { variants: { some: { sku: { contains: search, ...(searchMode && { mode: searchMode }) } } } },
         ],
       }),
       ...(categoryId && { categoryId }),
@@ -45,7 +63,7 @@ export class ProductsRepository {
     ]);
 
     return {
-      data: products,
+      data: products.map(inheritCategoryImages),
       total,
     };
   }
@@ -61,7 +79,7 @@ export class ProductsRepository {
     });
 
     if (!product || product.deletedAt) return null;
-    return product;
+    return inheritCategoryImages(product);
   }
 
   async findBySlug(slug: string): Promise<Product | null> {
@@ -75,7 +93,7 @@ export class ProductsRepository {
     });
 
     if (!product || product.deletedAt) return null;
-    return product;
+    return inheritCategoryImages(product);
   }
 
   async findByIdWithDeleted(id: string): Promise<Product | null> {
@@ -87,9 +105,17 @@ export class ProductsRepository {
   async create(data: CreateProductInput): Promise<Product> {
     const { images, variants, ...productData } = data;
 
+    const processedData = { ...productData };
+    for (let i = 1; i <= 7; i++) {
+      const key = `image${i}` as keyof typeof productData;
+      if (processedData[key] === '') {
+        (processedData as any)[key] = null;
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
-        ...productData,
+        ...processedData,
         slug: productData.slug.toLowerCase(),
         ...(images && images.length > 0 && {
           images: {
@@ -119,19 +145,27 @@ export class ProductsRepository {
       },
     });
 
-    return product as unknown as Product;
+    return inheritCategoryImages(product) as unknown as Product;
   }
 
   async update(id: string, data: UpdateProductInput): Promise<Product> {
     const { images, variants, ...productData } = data;
+
+    const processedData = { ...productData };
+    for (let i = 1; i <= 7; i++) {
+      const key = `image${i}` as keyof typeof productData;
+      if (processedData[key] === '') {
+        (processedData as any)[key] = null;
+      }
+    }
 
     return prisma.$transaction(async (tx) => {
       // 1. Update basic product details
       await tx.product.update({
         where: { id },
         data: {
-          ...productData,
-          ...(productData.slug && { slug: productData.slug.toLowerCase() }),
+          ...processedData,
+          ...(processedData.slug && { slug: processedData.slug.toLowerCase() }),
         },
       });
 
@@ -177,7 +211,7 @@ export class ProductsRepository {
         },
       });
 
-      return updated as unknown as Product;
+      return inheritCategoryImages(updated) as unknown as Product;
     });
   }
 

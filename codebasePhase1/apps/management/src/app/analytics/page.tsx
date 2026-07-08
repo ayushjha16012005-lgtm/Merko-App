@@ -30,7 +30,7 @@ export default function AdminAnalyticsPage() {
   completedOrders.forEach(ord => {
     ord.items.forEach(item => {
       // Find category for product item
-      const prod = products.find(p => p.name === item.productName);
+      const prod = products.find((p: any) => p.name === item.productName);
       const catName = prod?.category?.name || 'Unassigned';
       
       if (!categorySalesMap[catName]) {
@@ -265,7 +265,7 @@ export default function AdminAnalyticsPage() {
             <div className="flex justify-between items-center">
               <span className="text-slate-500 font-medium">Staged SKU Variants</span>
               <strong className="font-bold">
-                {products.reduce((sum, p) => sum + (p.variants?.length || 0), 0)} SKUs
+                {products.reduce((sum: number, p: any) => sum + (p.variants?.length || 0), 0)} SKUs
               </strong>
             </div>
           </CardContent>

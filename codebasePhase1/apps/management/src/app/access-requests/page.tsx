@@ -179,7 +179,7 @@ export default function AccessRequestsPage() {
                       </div>
 
                       {/* Audit History Block */}
-                      {(req.approvedBy || req.rejectedBy) && (
+                      {(req.approvedBy || req.rejectedBy || req.suspendedBy) && (
                         <div className="rounded-lg bg-slate-50 dark:bg-slate-950/40 p-3 border border-slate-200/50 dark:border-slate-800/60 space-y-1 text-[10px]">
                           <p className="font-bold text-slate-700 dark:text-slate-350">Verification Log</p>
                           {req.approvedBy && (
@@ -190,6 +190,11 @@ export default function AccessRequestsPage() {
                           {req.rejectedBy && (
                             <p className="text-slate-500 font-medium">
                               Rejected by: <span className="text-slate-800 dark:text-slate-200">{req.rejectedBy}</span> on {new Date(req.rejectedAt!).toLocaleString()}
+                            </p>
+                          )}
+                          {req.suspendedBy && (
+                            <p className="text-slate-500 font-medium">
+                              Suspended by: <span className="text-slate-800 dark:text-slate-200">{req.suspendedBy}</span> on {new Date(req.suspendedAt!).toLocaleString()}
                             </p>
                           )}
                         </div>

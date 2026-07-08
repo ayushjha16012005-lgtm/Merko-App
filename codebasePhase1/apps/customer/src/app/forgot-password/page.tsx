@@ -6,10 +6,12 @@ import { motion } from 'framer-motion';
 import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Input } from '@merko/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@merko/ui';
+import { useLanguage } from '@/contexts/language-context';
 
 export default function ForgotPasswordPage() {
   const { forgotPassword, isForgotPasswordPending } = useAuth();
   const { toast } = useToast();
+  const { language, t } = useLanguage();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -19,18 +21,18 @@ export default function ForgotPasswordPage() {
     setError('');
 
     if (!email) {
-      setError('Please fill in your email');
+      setError(language === 'hi' ? 'कृपया अपना ईमेल भरें' : 'Please fill in your email');
       return;
     }
 
     try {
       await forgotPassword({ email });
       setSubmitted(true);
-      toast('Reset link generated! Check your logs or console.', 'success');
+      toast(language === 'hi' ? 'रीसेट लिंक जनरेट हो गया! अपने लॉग या कंसोल की जांच करें।' : 'Reset link generated! Check your logs or console.', 'success');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.error || 'Something went wrong');
+      setError(err.response?.data?.error || (language === 'hi' ? 'कुछ गलत हो गया' : 'Something went wrong'));
     }
   };
 
@@ -45,10 +47,10 @@ export default function ForgotPasswordPage() {
         <Card className="border-slate-200/80 bg-white/70 shadow-xl backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
-              Reset Password
+              {t('auth.forgotTitle')}
             </CardTitle>
             <CardDescription className="text-slate-500 dark:text-slate-400">
-              We&apos;ll send you instructions to reset your account password
+              {t('auth.forgotDesc')}
             </CardDescription>
           </CardHeader>
           {submitted ? (
@@ -57,13 +59,13 @@ export default function ForgotPasswordPage() {
                 ✓
               </div>
               <p className="text-slate-700 dark:text-slate-300 font-medium">
-                Password reset link has been generated successfully!
+                {language === 'hi' ? 'पासवर्ड रीसेट लिंक सफलतापूर्वक जनरेट हो गया है!' : 'Password reset link has been generated successfully!'}
               </p>
               <p className="text-sm text-slate-500">
-                Since this is a development sandbox, we logged the link directly to the API server terminal.
+                {language === 'hi' ? 'चूंकि यह एक डेवलपमेंट सैंडबॉक्स है, हमने लिंक को सीधे एपीआई सर्वर टर्मिनल में लॉग किया है।' : 'Since this is a development sandbox, we logged the link directly to the API server terminal.'}
               </p>
               <Link href="/login" className="inline-block mt-4 text-indigo-600 font-semibold hover:underline">
-                Back to Login
+                {t('auth.backToLogin')}
               </Link>
             </CardContent>
           ) : (
@@ -76,12 +78,12 @@ export default function ForgotPasswordPage() {
                 )}
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="email">
-                    Email Address
+                    {t('auth.emailLabel')}
                   </label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="name@example.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="bg-white/50 dark:bg-slate-950/50"
@@ -91,11 +93,11 @@ export default function ForgotPasswordPage() {
               </CardContent>
               <CardFooter className="flex flex-col space-y-4">
                 <Button type="submit" className="w-full" disabled={isForgotPasswordPending}>
-                  {isForgotPasswordPending ? 'Sending Link...' : 'Send Reset Link'}
+                  {isForgotPasswordPending ? t('auth.sending') : t('auth.sendLinkButton')}
                 </Button>
                 <div className="text-center text-sm">
                   <Link href="/login" className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-                    Back to Sign In
+                    {t('auth.backToLogin')}
                   </Link>
                 </div>
               </CardFooter>

@@ -25,6 +25,7 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
         isActive: true,
         isPlatformSuperAdmin: true,
         permissions: true,
+        languagePreference: true,
       },
     });
 
@@ -40,9 +41,10 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
       lastName: user.lastName,
       isPlatformSuperAdmin: user.isPlatformSuperAdmin,
       permissions: user.permissions ? user.permissions.split(',') : [],
+      languagePreference: user.languagePreference,
     };
     next();
-  } catch (error) {
+  } catch {
     next(new UnauthorizedError('Invalid or expired access token'));
   }
 }
@@ -93,6 +95,14 @@ export function permissionGuard(requiredPermission: string) {
         return next();
       }
 
+      // Fallback for non-colon permissions like shipments and returns
+      if (requiredPermission === 'shipments' && (permissions.includes('shipments') || permissions.includes('orders'))) {
+        return next();
+      }
+      if (requiredPermission === 'returns' && (permissions.includes('returns') || permissions.includes('orders'))) {
+        return next();
+      }
+
       if (requiredPermission.includes(':')) {
         const [module] = requiredPermission.split(':');
         const legacyMap: Record<string, string[]> = {
@@ -103,6 +113,9 @@ export function permissionGuard(requiredPermission: string) {
           shipments: ['Orders'],
           payments: ['Payments'],
           analytics: ['Reports'],
+          reports: ['Reports'],
+          settings: ['Settings'],
+          customers: ['Customers'],
         };
 
         const hasLegacy = permissions.some((p) => {

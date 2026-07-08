@@ -61,12 +61,26 @@ export class UsersService {
       action = 'Access Request Approved';
       updateData.approvedBy = actorIdentifier;
       updateData.approvedAt = new Date();
+      updateData.rejectedBy = null;
+      updateData.rejectedAt = null;
+      updateData.suspendedBy = null;
+      updateData.suspendedAt = null;
     } else if (status === 'REJECTED') {
       action = 'Access Request Rejected';
       updateData.rejectedBy = actorIdentifier;
       updateData.rejectedAt = new Date();
+      updateData.approvedBy = null;
+      updateData.approvedAt = null;
+      updateData.suspendedBy = null;
+      updateData.suspendedAt = null;
     } else if (status === 'SUSPENDED') {
       action = 'Admin Suspended';
+      updateData.suspendedBy = actorIdentifier;
+      updateData.suspendedAt = new Date();
+      updateData.approvedBy = null;
+      updateData.approvedAt = null;
+      updateData.rejectedBy = null;
+      updateData.rejectedAt = null;
     } else {
       action = `Admin status changed to ${status}`;
     }

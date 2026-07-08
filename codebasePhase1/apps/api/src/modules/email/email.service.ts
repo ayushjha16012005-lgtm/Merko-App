@@ -26,11 +26,11 @@ Actions:
     console.log(`
 =========================================
 📧 EMAIL TO: ${email}
-SUBJECT: Your MERKO Management Portal Access Has Been Approved
+SUBJECT: Account Approved
 -----------------------------------------
-Your request has been approved.
+Your MERKO administrator account has been approved.
 
-You can now login to the Management Portal using your registered credentials.
+You may now log in using your registered credentials.
 =========================================
 `);
   }
@@ -39,9 +39,9 @@ You can now login to the Management Portal using your registered credentials.
     console.log(`
 =========================================
 📧 EMAIL TO: ${email}
-SUBJECT: Your MERKO Management Portal Access Has Been Rejected
+SUBJECT: Account Request Rejected
 -----------------------------------------
-We regret to inform you that your request to access the MERKO Management Portal has been rejected.
+Your administrator account request was not approved.
 =========================================
 `);
   }
@@ -50,9 +50,9 @@ We regret to inform you that your request to access the MERKO Management Portal 
     console.log(`
 =========================================
 📧 EMAIL TO: ${email}
-SUBJECT: Your MERKO Management Portal Access Has Been Suspended
+SUBJECT: Account Suspended
 -----------------------------------------
-Your access to the MERKO Management Portal has been suspended. Please contact administration.
+Your administrator account has been suspended.
 =========================================
 `);
   }
@@ -80,6 +80,21 @@ You have been invited to join MERKO as a Super Admin.
 Click the link below to set your password and activate your account:
 
 http://localhost:3000/activate-super-admin?token=${token}
+=========================================
+`);
+  }
+
+  sendPasswordResetEmail(email: string, token: string) {
+    console.log(`
+=========================================
+📧 EMAIL TO: ${email}
+SUBJECT: Reset Your MERKO Password
+-----------------------------------------
+Click the secure link below to reset your password:
+
+http://localhost:3000/reset-password?token=${token}
+
+This link is valid for 1 hour.
 =========================================
 `);
   }

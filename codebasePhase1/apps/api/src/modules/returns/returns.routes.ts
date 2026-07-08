@@ -3,8 +3,6 @@ import { returnsController } from './returns.controller';
 import { asyncHandler } from '@/lib/async-handler';
 import { authMiddleware, validateBody, permissionGuard } from '@/middleware';
 import { createReturnRequestSchema, updateReturnRequestStatusSchema } from '@/middleware/validators';
-import { UserRole } from '@merko/types';
-
 const router = Router();
 
 router.use(authMiddleware);

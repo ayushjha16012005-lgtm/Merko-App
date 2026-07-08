@@ -8,11 +8,13 @@ import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Car
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@merko/ui';
 import { UserRole } from '@merko/types';
+import { useLanguage } from '@/contexts/language-context';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register, isRegistering } = useAuth();
   const { toast } = useToast();
+  const { language, t } = useLanguage();
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -23,18 +25,19 @@ export default function RegisterPage() {
   const [role, setRole] = useState<UserRole>(UserRole.CUSTOMER);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     if (!email || !firstName || !lastName || !password) {
-      setError('Please fill in all required fields');
+      setError(language === 'hi' ? 'कृपया सभी आवश्यक फ़ील्ड भरें' : 'Please fill in all required fields');
       return;
     }
 
     if (role === UserRole.ADMIN && (!businessName || !businessAddress)) {
-      setError('Please fill in all business details fields');
+      setError(language === 'hi' ? 'कृपया व्यवसाय के सभी फ़ील्ड भरें' : 'Please fill in all business details fields');
       return;
     }
 
@@ -51,19 +54,74 @@ export default function RegisterPage() {
       });
 
       if (role === UserRole.ADMIN) {
-        toast('Registration Submitted! Your request is pending Super Admin approval.', 'success');
+        toast(language === 'hi' ? 'पंजीकरण अनुरोध सबमिट किया गया! यह सुपर एडमिन की स्वीकृति के अधीन है।' : 'Registration Submitted! Your request is pending Super Admin approval.', 'success');
+        setIsPendingApproval(true);
       } else {
-        toast('Registration Successful! Your account has been created. Please sign in.', 'success');
+        toast(t('toasts.registerSuccess'), 'success');
+        router.push('/login');
       }
-      router.push('/login');
     } catch (err) {
       console.error(err);
-      const axiosError = err as { response?: { data?: { error?: string } } };
-      const errMsg = axiosError.response?.data?.error || 'Registration failed. Try again.';
+      const axiosError = err as {
+        response?: {
+          data?: {
+            error?: string;
+            errors?: Array<{ field: string; message: string }>;
+          };
+        };
+      };
+      let errMsg = language === 'hi' ? 'पंजीकरण विफल रहा। पुनः प्रयास करें।' : 'Registration failed. Try again.';
+      if (axiosError.response?.data) {
+        const data = axiosError.response.data;
+        if (data.errors && data.errors.length > 0) {
+          errMsg = data.errors.map((e) => e.message).join(' ');
+        } else if (data.error) {
+          errMsg = data.error;
+        }
+      }
       setError(errMsg);
       toast(errMsg, 'error');
     }
   };
+
+  if (isPendingApproval) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+          className="w-full max-w-md"
+        >
+          <Card className="border-slate-200 bg-white/70 shadow-xl backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70">
+            <CardHeader className="space-y-1 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <CardTitle className="text-2xl font-black mt-4 text-slate-900 dark:text-white">
+                {language === 'hi' ? 'पंजीकरण सफल।' : 'Registration successful.'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-350">
+                {language === 'hi' ? 'आपका खाता सुपर एडमिन के अनुमोदन की प्रतीक्षा कर रहा है।' : 'Your account is awaiting Super Admin approval.'}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-455 leading-relaxed">
+                {language === 'hi' ? 'खाता स्वीकृत होने पर आपको एक ईमेल प्राप्त होगा।' : 'You will receive an email once your account has been approved.'}
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => router.push('/')} className="w-full bg-indigo-600 hover:bg-indigo-750 text-white font-bold py-2 px-4 rounded-xl shadow-md transition">
+                {language === 'hi' ? 'होमपेज पर वापस जाएं' : 'Return to Homepage'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (role === UserRole.SUPER_ADMIN) {
     return (
@@ -77,7 +135,7 @@ export default function RegisterPage() {
           <Card className="border-slate-250 bg-white/70 shadow-xl backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70">
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
-                SUPER ADMIN LOGIN
+                SUPER ADMIN
               </CardTitle>
               <CardDescription className="text-slate-500 dark:text-slate-400">
                 Administration Portal Access Control
@@ -115,10 +173,10 @@ export default function RegisterPage() {
         <Card className="border-slate-200/80 bg-white/70 shadow-xl backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
-              Create Account
+              {t('auth.registerTitle')}
             </CardTitle>
             <CardDescription className="text-slate-500 dark:text-slate-400">
-              Sign up to explore customizable printed merchandise
+              {language === 'hi' ? 'कस्टमाइज़ करने योग्य मुद्रित माल देखने के लिए साइन अप करें' : 'Sign up to explore customizable printed merchandise'}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -131,15 +189,15 @@ export default function RegisterPage() {
               
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="role">
-                  Account Type
+                  {language === 'hi' ? 'खाता प्रकार' : 'Account Type'}
                 </label>
                 <Select
                   value={role}
                   onChange={(val) => setRole(val as UserRole)}
                   options={[
-                    { value: UserRole.CUSTOMER, label: 'Customer (Immediate Access)' },
-                    { value: UserRole.ADMIN, label: 'Admin / Vendor (Requires Approval)' },
-                    { value: UserRole.SUPER_ADMIN, label: 'Super Admin (Administration)' },
+                    { value: UserRole.CUSTOMER, label: language === 'hi' ? 'ग्राहक (तत्काल पहुँच)' : 'Customer (Immediate Access)' },
+                    { value: UserRole.ADMIN, label: language === 'hi' ? 'व्यवस्थापक / विक्रेता (अनुमोदन आवश्यक)' : 'Admin / Vendor (Requires Approval)' },
+                    { value: UserRole.SUPER_ADMIN, label: language === 'hi' ? 'सुपर एडमिन (प्रशासन)' : 'Super Admin (Administration)' },
                   ]}
                 />
               </div>
@@ -147,12 +205,12 @@ export default function RegisterPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="firstName">
-                    First Name *
+                    {t('auth.firstNameLabel')} *
                   </label>
                   <Input
                     id="firstName"
                     type="text"
-                    placeholder="Sarah"
+                    placeholder={t('auth.firstNamePlaceholder')}
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="bg-white/50 dark:bg-slate-950/50"
@@ -161,12 +219,12 @@ export default function RegisterPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="lastName">
-                    Last Name *
+                    {t('auth.lastNameLabel')} *
                   </label>
                   <Input
                     id="lastName"
                     type="text"
-                    placeholder="Connor"
+                    placeholder={t('auth.lastNamePlaceholder')}
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className="bg-white/50 dark:bg-slate-950/50"
@@ -176,12 +234,12 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="email">
-                  Email Address *
+                  {t('auth.emailLabel')} *
                 </label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-white/50 dark:bg-slate-950/50"
@@ -190,12 +248,12 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="phone">
-                  Phone (Optional)
+                  {t('auth.phoneLabel')} {language === 'hi' ? '(वैकल्पिक)' : '(Optional)'}
                 </label>
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="9876543210"
+                  placeholder={t('auth.phonePlaceholder')}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="bg-white/50 dark:bg-slate-950/50"
@@ -210,7 +268,7 @@ export default function RegisterPage() {
                 >
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="businessName">
-                      Business Name *
+                      {language === 'hi' ? 'व्यवसाय का नाम *' : 'Business Name *'}
                     </label>
                     <Input
                       id="businessName"
@@ -224,7 +282,7 @@ export default function RegisterPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="businessAddress">
-                      Business Address *
+                      {language === 'hi' ? 'व्यवसाय का पता *' : 'Business Address *'}
                     </label>
                     <Input
                       id="businessAddress"
@@ -241,13 +299,13 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="password">
-                  Password *
+                  {t('auth.passwordLabel')} *
                 </label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="bg-white/50 pr-10 dark:bg-slate-950/50"
@@ -256,12 +314,12 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-450 hover:text-slate-650"
                   >
                     {showPassword ? (
-                      <span className="text-xs font-semibold">Hide</span>
+                      <span className="text-xs font-semibold">{language === 'hi' ? 'छिपाएं' : 'Hide'}</span>
                     ) : (
-                      <span className="text-xs font-semibold">Show</span>
+                      <span className="text-xs font-semibold">{language === 'hi' ? 'दिखाएं' : 'Show'}</span>
                     )}
                   </button>
                 </div>
@@ -269,12 +327,12 @@ export default function RegisterPage() {
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button type="submit" className="w-full" disabled={isRegistering}>
-                {isRegistering ? 'Submitting Registration...' : 'Register'}
+                {isRegistering ? t('auth.signingUp') : t('auth.signUpButton')}
               </Button>
               <div className="text-center text-sm text-slate-500 dark:text-slate-400">
-                Already have an account?{' '}
+                {t('auth.haveAccountPrompt')}{' '}
                 <Link href="/login" className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-                  Sign In
+                  {t('auth.loginLink')}
                 </Link>
               </div>
             </CardFooter>

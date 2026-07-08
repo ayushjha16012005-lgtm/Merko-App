@@ -59,7 +59,7 @@ export class ProfileRepository {
     });
   }
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string }): Promise<User> {
+  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; languagePreference?: string }): Promise<User> {
     return prisma.user.update({
       where: { id: userId },
       data,

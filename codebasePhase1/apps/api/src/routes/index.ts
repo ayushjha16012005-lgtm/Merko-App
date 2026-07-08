@@ -13,6 +13,7 @@ import { returnsRouter } from '@/modules/returns';
 import { refundsRouter } from '@/modules/refunds';
 import { usersRouter } from '@/modules/users/users.routes';
 import { uploadRouter } from '@/modules/upload';
+import { wishlistRouter } from '@/modules/wishlist';
 
 export function registerRoutes(app: Express): void {
   const basePath = `/api/${CONSTANTS.API_VERSION}`;
@@ -29,4 +30,5 @@ export function registerRoutes(app: Express): void {
   app.use(`${basePath}/refunds`, refundsRouter);
   app.use(`${basePath}/users`, usersRouter);
   app.use(`${basePath}/upload`, uploadRouter);
+  app.use(`${basePath}/wishlist`, wishlistRouter);
 }

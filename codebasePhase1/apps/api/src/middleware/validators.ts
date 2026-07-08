@@ -133,13 +133,41 @@ export const productsQuerySchema = paginationSchema.extend({
 export type ProductsQueryInput = z.infer<typeof productsQuerySchema>;
 
 // Authentication Validation Schemas
+const coercePhone = z.preprocess(
+  (val) => (val === undefined || val === null || val === '') ? undefined : String(val),
+  z.string().min(10, 'Phone must be at least 10 characters').optional()
+);
+
+const coercePhoneRequired = z.preprocess(
+  (val) => (val === undefined || val === null || val === '') ? undefined : String(val),
+  z.string().min(10, 'Phone must be at least 10 characters')
+);
+
 export const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().email('Please enter a valid email address.'),
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
-  phone: z.string().min(10, 'Phone must be at least 10 characters').optional().or(z.literal('')),
+  password: z.string().min(8, 'Password must contain at least 8 characters.'),
+  phone: coercePhone,
   role: z.enum(['CUSTOMER', 'VENDOR', 'ADMIN']).optional(),
+  businessName: z.string().optional().or(z.literal('')),
+  businessAddress: z.string().optional().or(z.literal('')),
+}).refine((data) => {
+  if (data.role === 'ADMIN' && (!data.businessName || data.businessName.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Business name is required for Admin registration',
+  path: ['businessName'],
+}).refine((data) => {
+  if (data.role === 'ADMIN' && (!data.businessAddress || data.businessAddress.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'Business address is required for Admin registration',
+  path: ['businessAddress'],
 });
 
 export const loginSchema = z.object({
@@ -164,13 +192,14 @@ export const changePasswordSchema = z.object({
 export const updateProfileSchema = z.object({
   firstName: z.string().min(1, 'First name cannot be empty').optional(),
   lastName: z.string().min(1, 'Last name cannot be empty').optional(),
-  phone: z.string().min(10, 'Phone must be at least 10 characters').optional().or(z.literal('')),
+  phone: coercePhone,
+  languagePreference: z.enum(['en', 'hi']).optional(),
 });
 
 // Address Validation Schemas
 export const addressSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().min(10, 'Phone must be at least 10 characters'),
+  phone: coercePhoneRequired,
   addressLine1: z.string().min(3, 'Address Line 1 must be at least 3 characters'),
   addressLine2: z.string().optional().or(z.literal('')),
   city: z.string().min(2, 'City must be at least 2 characters'),

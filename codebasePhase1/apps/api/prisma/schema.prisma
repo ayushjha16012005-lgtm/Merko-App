@@ -18,11 +18,14 @@ model User {
   role                String               @default("CUSTOMER")
   status              String               @default("ACTIVE")
   isPlatformSuperAdmin Boolean             @default(false)
+  languagePreference  String               @default("en")
   permissions         String?
   approvedBy          String?
   approvedAt          DateTime?
   rejectedBy          String?
   rejectedAt          DateTime?
+  suspendedBy         String?
+  suspendedAt         DateTime?
   businessName        String?
   businessAddress     String?
   emailVerified       Boolean              @default(false)
@@ -42,6 +45,7 @@ model User {
   couponUsages        CouponUsage[]
   superAdminInvitation SuperAdminInvitation?
   designFiles         OrderDesignFile[]
+  wishlistItems       WishlistItem[]
 
   @@index([email])
   @@index([phone])
@@ -167,6 +171,7 @@ model Product {
   image7              String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  wishlistItems       WishlistItem[]
 
   @@index([categoryId])
   @@index([slug])
@@ -556,4 +561,17 @@ model OrderDesignFile {
   @@index([orderId])
   @@index([productId])
   @@index([customerId])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }

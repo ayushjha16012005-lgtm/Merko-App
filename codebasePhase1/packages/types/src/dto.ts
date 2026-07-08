@@ -20,6 +20,7 @@ export interface UpdateUserDto {
   phone?: string;
   avatarUrl?: string;
   fcmToken?: string;
+  languagePreference?: string;
 }
 
 export interface CreateAddressDto {
@@ -226,6 +227,8 @@ export interface AddToCartDto {
   designFileUrl?: string;
   designFileName?: string;
   designFileType?: string;
+  mockupUrl?: string;
+  designConfig?: string;
 }
 
 export interface UpdateCartItemDto {
@@ -240,6 +243,8 @@ export interface CartItemResponseDto {
   designFileUrl?: string | null;
   designFileName?: string | null;
   designFileType?: string | null;
+  mockupUrl?: string | null;
+  designConfig?: string | null;
   productVariant: ProductVariantResponseDto & {
     product: ProductResponseDto;
   };
@@ -269,6 +274,8 @@ export interface OrderItemResponseDto {
   sku: string;
   price: number;
   quantity: number;
+  designConfig?: string | null;
+  mockupUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -449,6 +456,8 @@ export interface AccessRequestResponse {
   approvedAt?: string | null;
   rejectedBy?: string | null;
   rejectedAt?: string | null;
+  suspendedBy?: string | null;
+  suspendedAt?: string | null;
   permissions?: string[];
   createdAt: string;
 }

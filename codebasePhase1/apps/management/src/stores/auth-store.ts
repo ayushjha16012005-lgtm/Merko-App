@@ -9,6 +9,8 @@ export interface User {
   lastName: string;
   phone?: string | null;
   role: UserRole;
+  isPlatformSuperAdmin?: boolean;
+  permissions?: string[];
 }
 
 interface AuthState {

@@ -490,19 +490,51 @@ export default function AdminOrdersPage() {
 
                 {/* Items Summary list */}
                 <div className="space-y-2.5">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <ClipboardList className="h-3.5 w-3.5" /> Purchased Items
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <ClipboardList className="h-3.5 w-3.5" /> Purchased Items
+                    </h4>
+                    {selectedOrder.items.some(i => i.mockupUrl || i.designConfig) || (selectedOrder.designFiles && selectedOrder.designFiles.length > 0) ? (
+                      <Badge className="bg-indigo-100 text-indigo-700 border-indigo-200 text-[9px] px-1.5 py-0">Customized</Badge>
+                    ) : (
+                      <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[9px] px-1.5 py-0">Not Customized</Badge>
+                    )}
+                  </div>
                   <div className="border border-slate-200/80 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-950/10">
                     {selectedOrder.items.map((item) => (
-                      <div key={item.id} className="p-3.5 flex justify-between items-center bg-slate-50/20">
-                        <div>
-                          <span className="font-bold text-slate-900 dark:text-white text-xs block">{item.productName}</span>
-                          <span className="text-[10px] text-slate-450 block mt-0.5">Variant: {item.variantName} · SKU: {item.sku}</span>
+                      <div key={item.id} className="p-3.5 flex flex-col gap-3 bg-slate-50/20">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="font-bold text-slate-900 dark:text-white text-xs block">{item.productName}</span>
+                            <span className="text-[10px] text-slate-450 block mt-0.5">Variant: {item.variantName} · SKU: {item.sku}</span>
+                          </div>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0 ml-4">
+                            {item.quantity} x ₹{Number(item.price).toLocaleString('en-IN')}
+                          </span>
                         </div>
-                        <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0 ml-4">
-                          {item.quantity} x ₹{Number(item.price).toLocaleString('en-IN')}
-                        </span>
+                        {item.mockupUrl && (
+                          <div className="flex items-center gap-3 bg-slate-100 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
+                            <img src={item.mockupUrl} alt="Final Mockup" className="w-12 h-12 object-cover rounded-md shadow-sm bg-white" />
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">Final Mockup (Print Ready)</span>
+                              <a href={item.mockupUrl} target="_blank" rel="noreferrer" className="text-[9px] text-indigo-500 hover:underline">View Full Mockup</a>
+                            </div>
+                          </div>
+                        )}
+                        {/* Display Customer Notes if present in designConfig */}
+                        {item.designConfig && (() => {
+                          try {
+                            const cfg = JSON.parse(item.designConfig);
+                            if (cfg.customerNotes) {
+                              return (
+                                <div className="text-[10px] bg-amber-50 dark:bg-amber-900/10 text-amber-800 dark:text-amber-200 p-2 rounded border border-amber-200 dark:border-amber-800/50">
+                                  <strong>Customer Notes:</strong> {cfg.customerNotes}
+                                </div>
+                              );
+                            }
+                          } catch(e) {}
+                          return null;
+                        })()}
                       </div>
                     ))}
                   </div>

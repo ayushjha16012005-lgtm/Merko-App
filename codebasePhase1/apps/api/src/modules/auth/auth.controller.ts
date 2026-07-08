@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { authService } from './auth.service';
 import { sendSuccess } from '@/lib/response';
 import { getEnv } from '@merko/config';
+import { UnauthorizedError } from '@/errors';
 
 const env = getEnv();
 const isProd = env.NODE_ENV === 'production';
@@ -52,8 +53,7 @@ export class AuthController {
 
   async logoutAll(req: Request, res: Response) {
     if (!req.user) {
-      res.status(401);
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
     await authService.logoutAll(req.user.id);
     res.clearCookie('accessToken', { path: '/' });
@@ -64,8 +64,7 @@ export class AuthController {
   async refresh(req: Request, res: Response) {
     const token = req.cookies?.refreshToken || req.body.refreshToken;
     if (!token) {
-      res.status(401);
-      throw new Error('Refresh token is missing');
+      throw new UnauthorizedError('Refresh token is missing');
     }
 
     const { user, accessToken, refreshToken: newRefreshToken } = await authService.refresh(token);
@@ -90,8 +89,7 @@ export class AuthController {
 
   async changePassword(req: Request, res: Response) {
     if (!req.user) {
-      res.status(401);
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
     const { currentPassword, newPassword } = req.body;
     const result = await authService.changePassword(req.user.id, currentPassword, newPassword);
@@ -104,8 +102,7 @@ export class AuthController {
 
   async getProfile(req: Request, res: Response) {
     if (!req.user) {
-      res.status(401);
-      throw new Error('Unauthorized');
+      throw new UnauthorizedError('Unauthorized');
     }
     return sendSuccess(res, { user: req.user });
   }

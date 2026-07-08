@@ -25,7 +25,9 @@ import {
   useDeleteProduct
 } from '@/hooks/useAdmin';
 import type { ProductResponseDto } from '@merko/types';
-import { Search, Plus, Edit2, Trash2, ShieldAlert, Sparkles, CheckSquare } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, ShieldAlert, Sparkles, CheckSquare, RotateCcw, Paintbrush } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function AdminProductsPage() {
   const { toast } = useToast();
@@ -55,7 +57,33 @@ export default function AdminProductsPage() {
   const [categoryId, setCategoryId] = useState('');
 
   // Workspace Tab State
-  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'variants'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'variants' | 'cropping'>('basic');
+
+  // Payments & Roles checks
+  const { user } = useAuthStore();
+  const isPlatformSuperAdminOrSuperAdmin = user?.role === 'SUPER_ADMIN' || user?.isPlatformSuperAdmin;
+  const permissions = user?.permissions?.map((p: string) => p.toLowerCase()) || [];
+  const hasPayments = isPlatformSuperAdminOrSuperAdmin || permissions.includes('payments') || permissions.some(p => p.startsWith('payments:'));
+
+  // Payments / Discount states
+  const [discountType, setDiscountType] = useState<'NONE' | 'PERCENTAGE' | 'FIXED'>('NONE');
+  const [discountValue, setDiscountValue] = useState('0');
+
+  // Product Images 1 to 7 states
+  const [image1, setImage1] = useState('');
+  const [image2, setImage2] = useState('');
+  const [image3, setImage3] = useState('');
+  const [image4, setImage4] = useState('');
+  const [image5, setImage5] = useState('');
+  const [image6, setImage6] = useState('');
+  const [image7, setImage7] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Crop Config states
+  const [cropLeft, setCropLeft] = useState(0);
+  const [cropTop, setCropTop] = useState(0);
+  const [cropWidth, setCropWidth] = useState(100);
+  const [cropHeight, setCropHeight] = useState(100);
 
   // Staged Lists for Images and Variants
   const [imagesList, setImagesList] = useState<{ id?: string; imageUrl: string; altText: string; sortOrder: number }[]>([]);
@@ -105,6 +133,19 @@ export default function AdminProductsPage() {
     setCategoryId(categories[0]?.id || '');
     setImagesList([]);
     setVariantsList([]);
+    setDiscountType('NONE');
+    setDiscountValue('0');
+    setImage1('');
+    setImage2('');
+    setImage3('');
+    setImage4('');
+    setImage5('');
+    setImage6('');
+    setImage7('');
+    setCropLeft(0);
+    setCropTop(0);
+    setCropWidth(100);
+    setCropHeight(100);
     setActiveTab('basic');
     setIsFormOpen(true);
   };
@@ -131,6 +172,31 @@ export default function AdminProductsPage() {
       stock: v.stock ?? 0,
       isActive: v.isActive ?? true,
     })));
+    const rawProd = p as unknown as Record<string, string | number | null | undefined>;
+    setDiscountType((rawProd.discountType as 'NONE' | 'PERCENTAGE' | 'FIXED') || 'NONE');
+    setDiscountValue(String(rawProd.discountValue || '0'));
+    setImage1((rawProd.image1 as string) || '');
+    setImage2((rawProd.image2 as string) || '');
+    setImage3((rawProd.image3 as string) || '');
+    setImage4((rawProd.image4 as string) || '');
+    setImage5((rawProd.image5 as string) || '');
+    setImage6((rawProd.image6 as string) || '');
+    setImage7((rawProd.image7 as string) || '');
+
+    // Parse cropConfig
+    try {
+      const crop = JSON.parse((rawProd.cropConfig as string) || '{}');
+      setCropLeft(crop.left ?? 0);
+      setCropTop(crop.top ?? 0);
+      setCropWidth(crop.width ?? 100);
+      setCropHeight(crop.height ?? 100);
+    } catch {
+      setCropLeft(0);
+      setCropTop(0);
+      setCropWidth(100);
+      setCropHeight(100);
+    }
+
     setActiveTab('basic');
     setIsFormOpen(true);
   };
@@ -148,12 +214,53 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, slot: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64Data = (reader.result as string).split(',')[1];
+        const res = await apiClient.post('/upload', {
+          fileName: file.name,
+          fileType: file.type,
+          fileData: base64Data,
+        });
+        const fileUrl = res.data.data.fileUrl;
+        
+        if (slot === 1) setImage1(fileUrl);
+        else if (slot === 2) setImage2(fileUrl);
+        else if (slot === 3) setImage3(fileUrl);
+        else if (slot === 4) setImage4(fileUrl);
+        else if (slot === 5) setImage5(fileUrl);
+        else if (slot === 6) setImage6(fileUrl);
+        else if (slot === 7) setImage7(fileUrl);
+
+        toast(`Product image ${slot} uploaded successfully!`, 'success');
+      } catch (err) {
+        toast(`Failed to upload product image ${slot}.`, 'error');
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !slug || !basePrice || !categoryId) {
       toast('Please fill out all required fields.', 'error');
       return;
     }
+
+    const cropConfig = JSON.stringify({
+      left: Number(cropLeft) || 0,
+      top: Number(cropTop) || 0,
+      width: Number(cropWidth) || 100,
+      height: Number(cropHeight) || 100,
+    });
 
     const payload = {
       categoryId,
@@ -164,6 +271,16 @@ export default function AdminProductsPage() {
       basePrice: Number(basePrice),
       images: imagesList,
       variants: variantsList,
+      discountType,
+      discountValue: Number(discountValue) || 0,
+      cropConfig,
+      image1: image1 || undefined,
+      image2: image2 || undefined,
+      image3: image3 || undefined,
+      image4: image4 || undefined,
+      image5: image5 || undefined,
+      image6: image6 || undefined,
+      image7: image7 || undefined,
     };
 
     try {
@@ -212,7 +329,7 @@ export default function AdminProductsPage() {
     if (selectedIds.length === products.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(products.map((p) => p.id));
+      setSelectedIds(products.map((p: any) => p.id));
     }
   };
 
@@ -235,7 +352,7 @@ export default function AdminProductsPage() {
 
   const selectOptions = [
     { value: 'all', label: 'All Categories' },
-    ...categories.map((c) => ({ value: c.id, label: c.name })),
+    ...categories.map((c: any) => ({ value: c.id, label: c.name })),
   ];
 
   return (
@@ -331,7 +448,7 @@ export default function AdminProductsPage() {
                     </td>
                   </tr>
                 ) : (
-                  products.map((p) => {
+                  products.map((p: any) => {
                     const isChecked = selectedIds.includes(p.id);
                     return (
                       <tr
@@ -535,6 +652,17 @@ export default function AdminProductsPage() {
           >
             Variants ({variantsList.length})
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('cropping')}
+            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 ${
+              activeTab === 'cropping'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-650'
+            }`}
+          >
+            <Paintbrush className="h-3.5 w-3.5" /> Cropping & Sync
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -547,7 +675,7 @@ export default function AdminProductsPage() {
                 <Select
                   value={categoryId}
                   onChange={setCategoryId}
-                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                  options={categories.map((c: any) => ({ value: c.id, label: c.name }))}
                 />
               </div>
 
@@ -576,7 +704,10 @@ export default function AdminProductsPage() {
 
               {/* Base Price */}
               <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Base Price (₹) <span className="text-red-500">*</span></label>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                  Base Price (₹) <span className="text-red-500">*</span>
+                  {!hasPayments && <span className="text-[10px] text-amber-500 font-semibold normal-case ml-2">(Read-only)</span>}
+                </label>
                 <Input
                   type="number"
                   min="0"
@@ -584,7 +715,43 @@ export default function AdminProductsPage() {
                   value={basePrice}
                   onChange={(e) => setBasePrice(e.target.value)}
                   placeholder="e.g. 599.00"
+                  disabled={!hasPayments}
                   required
+                />
+              </div>
+
+              {/* Discount Type */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                  Discount Type
+                  {!hasPayments && <span className="text-[10px] text-amber-500 font-semibold normal-case ml-2">(Read-only)</span>}
+                </label>
+                <Select
+                  value={discountType}
+                  onChange={(val) => setDiscountType(val as 'NONE' | 'PERCENTAGE' | 'FIXED')}
+                  options={[
+                    { value: 'NONE', label: 'No Discount' },
+                    { value: 'PERCENTAGE', label: 'Percentage (%)' },
+                    { value: 'FIXED', label: 'Fixed Amount (₹)' },
+                  ]}
+                  disabled={!hasPayments}
+                />
+              </div>
+
+              {/* Discount Value */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                  Discount Value
+                  {!hasPayments && <span className="text-[10px] text-amber-500 font-semibold normal-case ml-2">(Read-only)</span>}
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discountValue}
+                  onChange={(e) => setDiscountValue(e.target.value)}
+                  placeholder="e.g. 10"
+                  disabled={!hasPayments || discountType === 'NONE'}
                 />
               </div>
 
@@ -611,162 +778,198 @@ export default function AdminProductsPage() {
             </div>
           )}
 
-          {/* TAB 2: IMAGES MANAGEMENT */}
+          {/* TAB 2: IMAGES MANAGEMENT (7 Slots) */}
           {activeTab === 'images' && (
-            <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
-              <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/40 space-y-3">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Add Image to Workspace</h4>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Input
-                    placeholder="Image URL (e.g. https://images.unsplash.com/...)"
-                    value={newImageUrl}
-                    onChange={(e) => setNewImageUrl(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Alt Description (e.g. Front View)"
-                    value={newImageAlt}
-                    onChange={(e) => setNewImageAlt(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-end">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      if (!newImageUrl) {
-                        toast('Please enter a valid image URL', 'error');
-                        return;
-                      }
-                      setImagesList((prev) => [
-                        ...prev,
-                        {
-                          imageUrl: newImageUrl,
-                          altText: newImageAlt || 'Product image',
-                          sortOrder: prev.length,
-                        },
-                      ]);
-                      setNewImageUrl('');
-                      setNewImageAlt('');
-                      toast('Image added to staging preview!', 'success');
-                    }}
-                    className="text-xs px-4 py-1.5"
-                  >
-                    Staging Add
-                  </Button>
-                </div>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Product Master Images (7 Slots)</h4>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setImage1('');
+                    setImage2('');
+                    setImage3('');
+                    setImage4('');
+                    setImage5('');
+                    setImage6('');
+                    setImage7('');
+                    toast('Synced with Category imagery! Product will inherit category master images.', 'success');
+                  }}
+                  className="text-xs font-semibold flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" /> Sync Category Images
+                </Button>
               </div>
 
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Product Gallery Preview</h4>
-                {imagesList.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-8 border border-dashed rounded-xl">
-                    No images staging. Paste URLs above.
-                  </p>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {imagesList.map((img, idx) => {
-                      const isFeatured = idx === 0;
-                      return (
-                        <div
-                          key={idx}
-                          className="flex gap-3 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800/40 bg-white dark:bg-slate-950 items-center justify-between shadow-sm"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded overflow-hidden bg-slate-50 border dark:border-slate-800 flex items-center justify-center flex-shrink-0">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={img.imageUrl} alt={img.altText} className="object-cover h-full w-full" onError={(e)=>{ (e.target as HTMLElement).style.display = 'none'; }} />
-                            </div>
-                            <div>
-                              <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">
-                                {img.altText || 'Product image'}
-                              </span>
-                              <span className="text-[10px] text-slate-400 mt-0.5 block">
-                                {isFeatured ? (
-                                  <span className="text-amber-500 font-bold">★ Primary Featured</span>
-                                ) : (
-                                  `Staging Order: ${img.sortOrder}`
-                                )}
-                              </span>
-                            </div>
-                          </div>
+              {(() => {
+                const selectedCat = categories.find((c: any) => c.id === categoryId);
+                return (
+                  <div className="grid grid-cols-4 gap-3">
+                    {[1, 2, 3, 4, 5, 6, 7].map((slot) => {
+                      const currentVal =
+                        slot === 1 ? image1 :
+                        slot === 2 ? image2 :
+                        slot === 3 ? image3 :
+                        slot === 4 ? image4 :
+                        slot === 5 ? image5 :
+                        slot === 6 ? image6 :
+                        image7;
 
-                          <div className="flex items-center gap-1">
-                            <button
+                      const setter =
+                        slot === 1 ? setImage1 :
+                        slot === 2 ? setImage2 :
+                        slot === 3 ? setImage3 :
+                        slot === 4 ? setImage4 :
+                        slot === 5 ? setImage5 :
+                        slot === 6 ? setImage6 :
+                        setImage7;
+
+                      const catFallback = selectedCat ? (
+                        slot === 1 ? selectedCat.masterImage1 :
+                        slot === 2 ? selectedCat.masterImage2 :
+                        slot === 3 ? selectedCat.masterImage3 :
+                        slot === 4 ? selectedCat.masterImage4 :
+                        slot === 5 ? selectedCat.masterImage5 :
+                        slot === 6 ? selectedCat.masterImage6 :
+                        selectedCat.masterImage7
+                      ) : null;
+
+                      const previewSrc = currentVal || catFallback || '';
+
+                      return (
+                        <div key={slot} className="relative flex flex-col items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-2.5 bg-slate-50/50 dark:bg-slate-950/20 group">
+                          <span className="text-[10px] font-bold text-slate-500 mb-1.5">
+                            Slot {slot} {slot === 1 && <Badge variant="success" className="text-[7px] py-0 px-1 ml-1">Primary</Badge>}
+                          </span>
+                          {previewSrc ? (
+                            <div className="relative h-16 w-full border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
+                              <img src={previewSrc} alt={`Slot ${slot}`} className="object-cover h-full w-full" />
+                              {currentVal ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setter('')}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 text-[8px] font-bold h-4 w-4 flex items-center justify-center shadow hover:bg-red-650"
+                                  title="Delete Image"
+                                >
+                                  ✕
+                                </button>
+                              ) : (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <span className="text-[7px] font-extrabold uppercase text-white tracking-widest text-center px-1">Inherited</span>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="h-16 w-full flex items-center justify-center border border-dashed rounded bg-slate-100/50 dark:bg-slate-900/50">
+                              <span className="text-[9px] text-slate-400">Empty</span>
+                            </div>
+                          )}
+
+                          <div className="mt-2 w-full">
+                            <Button
                               type="button"
-                              disabled={idx === 0}
-                              onClick={() => {
-                                const list = [...imagesList];
-                                const temp = list[idx];
-                                list[idx] = list[idx - 1];
-                                list[idx - 1] = temp;
-                                list.forEach((item, index) => {
-                                  item.sortOrder = index;
-                                });
-                                setImagesList(list);
-                              }}
-                              className="p-1 hover:bg-slate-100 rounded text-slate-500 dark:hover:bg-slate-800 disabled:opacity-30 text-xs"
-                              title="Move Up"
+                              variant="outline"
+                              className="relative text-[9px] h-7 w-full p-0 font-medium"
+                              disabled={isUploading}
                             >
-                              ▲
-                            </button>
-                            <button
-                              type="button"
-                              disabled={idx === imagesList.length - 1}
-                              onClick={() => {
-                                const list = [...imagesList];
-                                const temp = list[idx];
-                                list[idx] = list[idx + 1];
-                                list[idx + 1] = temp;
-                                list.forEach((item, index) => {
-                                  item.sortOrder = index;
-                                });
-                                setImagesList(list);
-                              }}
-                              className="p-1 hover:bg-slate-100 rounded text-slate-500 dark:hover:bg-slate-800 disabled:opacity-30 text-xs"
-                              title="Move Down"
-                            >
-                              ▼
-                            </button>
-                            {!isFeatured && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const list = [...imagesList];
-                                  const target = list.splice(idx, 1)[0];
-                                  list.unshift(target);
-                                  list.forEach((item, index) => {
-                                    item.sortOrder = index;
-                                  });
-                                  setImagesList(list);
-                                  toast('Image set as primary featured!', 'success');
-                                }}
-                                className="p-1 hover:bg-amber-50 text-slate-400 hover:text-amber-500 rounded dark:hover:bg-amber-950/20 text-xs"
-                                title="Set Featured"
-                              >
-                                ★
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const list = imagesList.filter((_, i) => i !== idx);
-                                list.forEach((item, index) => {
-                                  item.sortOrder = index;
-                                });
-                                setImagesList(list);
-                                toast('Image removed from staging preview!', 'info');
-                              }}
-                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-650 rounded dark:hover:bg-red-950/20 text-xs font-bold"
-                              title="Delete Image"
-                            >
-                              ✕
-                            </button>
+                              {currentVal ? 'Replace' : 'Upload'}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleProductImageUpload(e, slot)}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                              />
+                            </Button>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                )}
+                );
+              })()}
+            </div>
+          )}
+
+          {/* TAB 4: CROPPING & IMAGERY SYNC */}
+          {activeTab === 'cropping' && (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Cropping Configuration</h4>
+              
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Crop Left ({cropLeft}%)</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={cropLeft}
+                      onChange={(e) => setCropLeft(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Crop Top ({cropTop}%)</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={cropTop}
+                      onChange={(e) => setCropTop(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Crop Width ({cropWidth}%)</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={cropWidth}
+                      onChange={(e) => setCropWidth(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Crop Height ({cropHeight}%)</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={cropHeight}
+                      onChange={(e) => setCropHeight(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3 justify-center items-center p-4 bg-slate-50/50 rounded-xl border border-dashed">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Real-Time Crop Preview</span>
+                  {(() => {
+                    const selectedCat = categories.find((c: any) => c.id === categoryId);
+                    const baseImg = image1 || (selectedCat ? selectedCat.masterImage1 : null) || '';
+                    if (!baseImg) {
+                      return <span className="text-[10px] text-slate-400">Please upload Slot 1 or select a category with master images.</span>;
+                    }
+                    return (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="relative h-40 w-40 border border-slate-300 dark:border-slate-800 rounded overflow-hidden bg-slate-100 flex-shrink-0">
+                          <div 
+                            className="absolute inset-0 bg-no-repeat"
+                            style={{
+                              backgroundImage: `url(${baseImg})`,
+                              backgroundPosition: `${cropLeft}% ${cropTop}%`,
+                              backgroundSize: `${100 * (100 / Math.max(1, cropWidth))}% ${100 * (100 / Math.max(1, cropHeight))}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-[9px] text-slate-400 text-center">Derived thumbnail generated from crop mapping parameters.</span>
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           )}
@@ -789,9 +992,10 @@ export default function AdminProductsPage() {
                   />
                   <Input
                     type="number"
-                    placeholder="Price (₹)"
+                    placeholder={hasPayments ? "Price (₹)" : "Price (₹) (Read-only)"}
                     value={newVariantPrice}
                     onChange={(e) => setNewVariantPrice(e.target.value)}
+                    disabled={!hasPayments}
                   />
                   <Input
                     type="number"
@@ -892,7 +1096,8 @@ export default function AdminProductsPage() {
                                   list[idx].price = Number(e.target.value) || 0;
                                   setVariantsList(list);
                                 }}
-                                className="w-full bg-transparent border-b border-transparent focus:border-indigo-500 outline-none font-semibold px-1 py-0.5"
+                                disabled={!hasPayments}
+                                className="w-full bg-transparent border-b border-transparent focus:border-indigo-500 outline-none font-semibold px-1 py-0.5 disabled:opacity-50"
                               />
                             </td>
                             <td className="p-2">

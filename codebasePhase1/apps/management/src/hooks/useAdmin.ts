@@ -43,7 +43,11 @@ export function useAdminProducts(params: { search?: string; categoryId?: string;
           limit,
         },
       });
-      return response.data;
+      const resData = response.data as any;
+      if (resData && resData.meta && !resData.pagination) {
+        resData.pagination = resData.meta;
+      }
+      return resData;
     },
     placeholderData: (previousData) => previousData,
   });
@@ -63,7 +67,11 @@ export function useAdminCategories(params: { search?: string; isActive?: boolean
           limit,
         },
       });
-      return response.data;
+      const resData = response.data as any;
+      if (resData && resData.meta && !resData.pagination) {
+        resData.pagination = resData.meta;
+      }
+      return resData;
     },
   });
 }

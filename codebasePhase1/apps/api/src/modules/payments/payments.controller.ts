@@ -31,7 +31,8 @@ export class PaymentsController {
       throw new UnauthorizedError();
     }
     const { orderId } = req.params;
-    const payment = await paymentsService.getPaymentByOrderId(orderId!);
+    const isAdmin = !!(req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN' || req.user.isPlatformSuperAdmin);
+    const payment = await paymentsService.getPaymentByOrderId(orderId!, req.user.id, isAdmin);
     return sendSuccess(res, payment);
   }
 }

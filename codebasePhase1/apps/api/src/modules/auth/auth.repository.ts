@@ -11,6 +11,10 @@ export class AuthRepository {
     return prisma.user.findUnique({ where: { id } });
   }
 
+  async findUserByPhone(phone: string): Promise<User | null> {
+    return prisma.user.findUnique({ where: { phone } });
+  }
+
   async createUser(data: CreateUserDto): Promise<User> {
     if (!data.passwordHash) {
       throw new Error('Password hash is required for database creation');

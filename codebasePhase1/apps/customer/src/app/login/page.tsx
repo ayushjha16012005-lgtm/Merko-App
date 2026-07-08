@@ -7,11 +7,13 @@ import { motion } from 'framer-motion';
 import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Input } from '@merko/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@merko/ui';
+import { useLanguage } from '@/contexts/language-context';
 
 export default function LoginPage() {
   const router = useRouter();
   const { user, isAuthenticated, login, isLoggingIn } = useAuth();
   const { toast } = useToast();
+  const { language, t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +22,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
-        window.location.href = 'http://localhost:3001/dashboard';
+        const mgmtUrl = process.env.NEXT_PUBLIC_MANAGEMENT_URL || 'http://localhost:3001';
+        window.location.href = `${mgmtUrl}/dashboard`;
       } else {
         router.push('/');
       }
@@ -32,25 +35,27 @@ export default function LoginPage() {
     setError('');
 
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError(language === 'hi' ? 'कृपया सभी क्षेत्रों को भरें' : 'Please fill in all fields');
       return;
     }
 
     try {
       const response = await login({ email, password });
-      toast('Welcome Back! You have logged in successfully.', 'success');
+      toast(t('toasts.loginSuccess'), 'success');
       
       const role = response?.data?.user?.role;
       if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-        window.location.href = 'http://localhost:3001/dashboard';
+        const mgmtUrl = process.env.NEXT_PUBLIC_MANAGEMENT_URL || 'http://localhost:3001';
+        window.location.href = `${mgmtUrl}/dashboard`;
       } else {
         router.push('/');
       }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.error || 'Invalid email or password');
-      toast(err.response?.data?.error || 'Invalid email or password', 'error');
+      const errMsg = err.response?.data?.error || (language === 'hi' ? 'अमान्य ईमेल या पासवर्ड' : 'Invalid email or password');
+      setError(errMsg);
+      toast(errMsg, 'error');
     }
   };
 
@@ -65,10 +70,10 @@ export default function LoginPage() {
         <Card className="border-slate-200/80 bg-white/70 shadow-xl backdrop-blur-md dark:border-slate-800/60 dark:bg-slate-900/70">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-indigo-800 bg-clip-text text-transparent">
-              Sign In
+              {t('auth.loginTitle')}
             </CardTitle>
             <CardDescription className="text-slate-500 dark:text-slate-400">
-              Enter your email and password to access your account
+              {language === 'hi' ? 'अपने खाते तक पहुँचने के लिए अपना ईमेल और पासवर्ड दर्ज करें' : 'Enter your email and password to access your account'}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -80,13 +85,13 @@ export default function LoginPage() {
               )}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="email">
-                  Email Address
+                  {t('auth.emailLabel')}
                 </label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="name@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="bg-white/50 dark:bg-slate-950/50"
@@ -96,13 +101,13 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="password">
-                    Password
+                    {t('auth.passwordLabel')}
                   </label>
                   <Link
                     href="/forgot-password"
                     className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
                   >
-                    Forgot password?
+                    {t('auth.forgotPasswordLink')}
                   </Link>
                 </div>
                 <div className="relative">
@@ -110,7 +115,7 @@ export default function LoginPage() {
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="bg-white/50 pr-10 dark:bg-slate-950/50"
@@ -119,12 +124,12 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-450 hover:text-slate-650"
                   >
                     {showPassword ? (
-                      <span className="text-xs font-semibold">Hide</span>
+                      <span className="text-xs font-semibold">{language === 'hi' ? 'छिपाएं' : 'Hide'}</span>
                     ) : (
-                      <span className="text-xs font-semibold">Show</span>
+                      <span className="text-xs font-semibold">{language === 'hi' ? 'दिखाएं' : 'Show'}</span>
                     )}
                   </button>
                 </div>
@@ -132,12 +137,12 @@ export default function LoginPage() {
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               <Button type="submit" className="w-full" disabled={isLoggingIn}>
-                {isLoggingIn ? 'Signing In...' : 'Sign In'}
+                {isLoggingIn ? t('auth.signingIn') : t('auth.signInButton')}
               </Button>
               <div className="text-center text-sm text-slate-500 dark:text-slate-400">
-                Don&apos;t have an account?{' '}
+                {t('auth.noAccountPrompt')}{' '}
                 <Link href="/register" className="font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
-                  Register
+                  {language === 'hi' ? 'पंजीकरण करें' : 'Register'}
                 </Link>
               </div>
             </CardFooter>

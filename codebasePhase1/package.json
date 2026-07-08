@@ -8,6 +8,7 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "build": "turbo run build",
+    "predev": "node scratch/clean_ports.js",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAdminOrders } from '@/hooks/useAdmin';
 import { Badge, Card, CardContent, CardHeader, Input } from '@merko/ui';
 import { Search, RotateCcw, DollarSign, AlertCircle } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function AdminRefundsPage() {
   const [search, setSearch] = useState('');
@@ -13,6 +14,18 @@ export default function AdminRefundsPage() {
     page: 1,
     limit: 1000 // Fetch high limits to scan settled refunds
   });
+
+  const { user } = useAuthStore();
+  
+  if (user?.role === 'ADMIN' && !user?.permissions?.includes('payments')) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Access Denied</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">You do not have permission to view refunds.</p>
+      </div>
+    );
+  }
 
   const orders = adminOrders?.items || [];
 

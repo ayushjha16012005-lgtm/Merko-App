@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { ForbiddenError } from '@/errors';
+import { TooManyRequestsError } from '@/errors';
 
 interface RateLimitInfo {
   count: number;
@@ -33,7 +33,7 @@ export function rateLimiter(limit: number, windowMs: number) {
 
     if (info.count > limit) {
       _res.setHeader('Retry-After', Math.ceil((info.resetTime - now) / 1000));
-      return next(new ForbiddenError('Too many requests, please try again later.'));
+      return next(new TooManyRequestsError('Too many requests, please try again later.'));
     }
 
     next();

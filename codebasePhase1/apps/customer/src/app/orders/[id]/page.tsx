@@ -431,6 +431,28 @@ export default function OrderDetailsPage() {
                     <p className="text-xs text-slate-500 mt-0.5">
                       Variant: {item.variantName} · SKU: {item.sku}
                     </p>
+                    {item.mockupUrl && (
+                      <div className="flex items-center gap-2 mt-2 bg-slate-50 dark:bg-slate-900 p-1.5 rounded border border-slate-100 dark:border-slate-800 max-w-[280px]">
+                        <img src={item.mockupUrl} alt="Design Mockup" className="w-8 h-8 object-cover rounded bg-white" />
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block">Design Mockup</span>
+                          <a href={item.mockupUrl} target="_blank" rel="noreferrer" className="text-[9px] text-indigo-650 hover:underline">View Full Screen</a>
+                        </div>
+                      </div>
+                    )}
+                    {item.designConfig && (() => {
+                      try {
+                        const cfg = JSON.parse(item.designConfig);
+                        if (cfg.customerNotes) {
+                          return (
+                            <div className="text-[10px] bg-amber-50 dark:bg-amber-900/10 text-amber-850 dark:text-amber-200 p-1.5 rounded border border-amber-200/50 dark:border-amber-800/30 mt-1 max-w-[280px]">
+                              <strong>Notes:</strong> {cfg.customerNotes}
+                            </div>
+                          );
+                        }
+                      } catch(e) {}
+                      return null;
+                    })()}
                   </div>
                   <div className="text-right text-xs">
                     <span className="text-slate-500 block mb-0.5">

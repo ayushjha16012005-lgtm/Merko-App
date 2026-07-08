@@ -15,7 +15,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || (user?.role !== 'ADMIN' && user?.role !== 'SUPER_ADMIN'))) {
-      window.location.href = 'http://localhost:3000/login';
+      const customerUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'http://localhost:3000';
+      window.location.href = `${customerUrl}/login`;
     }
   }, [isAuthenticated, isLoading, user]);
 

@@ -1,4 +1,5 @@
 import { categoriesRepository } from './categories.repository';
+import { prisma } from '@/config/db';
 import { NotFoundError, AppError } from '@/errors';
 import type { CreateCategoryInput, UpdateCategoryInput, CategoriesQueryInput } from '@/middleware/validators';
 
@@ -55,6 +56,12 @@ export class CategoriesService {
 
   async deleteCategory(id: string) {
     await this.getCategoryById(id);
+    const productCount = await prisma.product.count({
+      where: { categoryId: id },
+    });
+    if (productCount > 0) {
+      throw new AppError(`Cannot delete category because it contains ${productCount} associated product(s). Please delete or reassign products first.`, 400);
+    }
     await categoriesRepository.delete(id);
   }
 }

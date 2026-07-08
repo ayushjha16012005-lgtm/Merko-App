@@ -8,8 +8,10 @@ import { Badge, Button, useToast, Input, Card, CardHeader, CardTitle } from '@me
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useCart } from '@/hooks/useCart';
+import { useOrders } from '@/hooks/useOrders';
 import { useUiStore } from '@/stores/ui-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { useWishlist } from '@/hooks/useWishlist';
 import { apiClient } from '@/lib/api-client';
 import { 
   ArrowLeft, 
@@ -84,12 +86,16 @@ const FONT_OPTIONS = [
   { name: 'Courier New', value: 'Courier New' },
 ];
 
+import { useLanguage } from '@/contexts/language-context';
+
 export default function ProductDetailPage({ params }: PageProps) {
   const { id } = React.use(params);
   const { toast } = useToast();
   const { addToCart, isAdding } = useCart();
   const { addProduct } = useRecentlyViewed();
   const { setCartDrawerOpen } = useUiStore();
+  const { orders } = useOrders();
+  const { language, t } = useLanguage();
   const { data: product, isLoading: productLoading, isError: productError } = useProduct(id);
 
   React.useEffect(() => {
@@ -102,7 +108,8 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [activeImageIndex, setActiveImageIndex] = React.useState(0);
   const [selectedVariantId, setSelectedVariantId] = React.useState<string | null>(null);
   const [quantity, setQuantity] = React.useState(1);
-  const [isWishlisted, setIsWishlisted] = React.useState(false);
+  const { wishlistedIds, addToWishlist, removeFromWishlist } = useWishlist();
+  const isWishlisted = product?.id ? wishlistedIds.has(product.id) : false;
   const [uploading, setUploading] = React.useState(false);
   const [designFile, setDesignFile] = React.useState<{ url: string; name: string; type: string } | null>(null);
   const [dragActive, setDragActive] = React.useState(false);
@@ -588,6 +595,10 @@ export default function ProductDetailPage({ params }: PageProps) {
         designFileUrl: mergedUrl,
         designFileName: `${product.name.replace(/\s+/g, '-').toLowerCase()}-studio-custom.png`,
         designFileType: 'image/png',
+        mockupUrl: mergedUrl,
+        designConfig: JSON.stringify({
+          customerNotes: designName || 'No specific notes provided.'
+        })
       });
 
       toast(`Added custom ${quantity}x ${product.name} to order!`, 'success');
@@ -670,7 +681,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const images = product.images && product.images.length > 0
     ? product.images
-    : [{ id: 'default', imageUrl: 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=600', altText: product.name }];
+    : [{ id: 'default', imageUrl: product.category?.masterImageUrl || product.category?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=600', altText: product.name }];
 
   const activeImage = images[activeImageIndex]?.imageUrl || images[0].imageUrl;
   const activeVariant = product.variants?.find((v) => v.id === selectedVariantId);
@@ -706,9 +717,19 @@ export default function ProductDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    toast(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 'info');
+  const handleWishlist = async () => {
+    if (!product?.id) return;
+    try {
+      if (isWishlisted) {
+        await removeFromWishlist(product.id);
+        toast(`Removed "${product.name}" from wishlist`, 'info');
+      } else {
+        await addToWishlist(product.id);
+        toast(`Added "${product.name}" to wishlist`, 'success');
+      }
+    } catch {
+      toast('Failed to update wishlist.', 'error');
+    }
   };
 
   // ==========================================
@@ -778,6 +799,112 @@ export default function ProductDetailPage({ params }: PageProps) {
                   </Button>
                 </div>
               )}
+
+              {/* Previously Ordered Designs Library */}
+              {orders && orders.length > 0 && (() => {
+                interface PreviousDesignItem {
+                  id: string;
+                  fileName: string;
+                  fileUrl: string;
+                  orderNumber: string;
+                }
+                const previousDesigns = orders.reduce<PreviousDesignItem[]>((acc, order) => {
+                  if (order.designFiles && order.designFiles.length > 0) {
+                    order.designFiles.forEach(df => {
+                      if (!acc.some(x => x.fileUrl === df.fileUrl)) {
+                        acc.push({
+                          id: df.id,
+                          fileName: df.fileName,
+                          fileUrl: df.fileUrl,
+                          orderNumber: order.orderNumber,
+                        });
+                      }
+                    });
+                  }
+                  return acc;
+                }, []);
+
+                if (previousDesigns.length === 0) return null;
+
+                return (
+                  <div className="space-y-2 pt-2.5 border-t border-slate-100 dark:border-slate-850">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Reuse Ordered Artworks</h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      {previousDesigns.map((design: PreviousDesignItem) => (
+                        <button
+                          key={design.id}
+                          type="button"
+                          className="relative aspect-square border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-900 p-1 hover:border-orange-500 transition group"
+                          onClick={() => {
+                            setCustomImage(design.fileUrl);
+                            setSelectedElementId('image');
+                            toast('Loaded artwork design from library!', 'success');
+                          }}
+                          title={`Reuse artwork from Order ${design.orderNumber}: ${design.fileName}`}
+                        >
+                          <img
+                            src={design.fileUrl}
+                            alt={design.fileName}
+                            className="w-full h-full object-contain"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition rounded">
+                            <span className="text-[8px] font-bold text-white uppercase">Use</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Saved Drafts for this product */}
+              {(() => {
+                const authState = useAuthStore.getState();
+                const userId = authState.user?.id || 'guest';
+                const draftsStr = typeof window !== 'undefined' ? localStorage.getItem(`merko_saved_designs_${userId}`) : null;
+                if (!draftsStr) return null;
+                try {
+                  const drafts: SavedDraft[] = JSON.parse(draftsStr);
+                  const productDrafts = drafts.filter(d => d.productId === product?.id);
+                  if (productDrafts.length === 0) return null;
+
+                  return (
+                    <div className="space-y-2 pt-2.5 border-t border-slate-100 dark:border-slate-850">
+                      <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Load Saved Drafts</h4>
+                      <div className="space-y-1.5">
+                        {productDrafts.map((draft) => (
+                          <div
+                            key={draft.id}
+                            className="flex items-center justify-between p-2 rounded-lg border border-slate-200/60 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-950/20 text-[10px]"
+                          >
+                            <span className="font-bold text-slate-700 dark:text-slate-350 truncate max-w-[120px]">{draft.name}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 text-[9px] font-bold border-orange-500 text-orange-500 hover:bg-orange-50"
+                              onClick={() => {
+                                if (draft.config) {
+                                  setCustomImage(draft.config.uploadedImageUrl || null);
+                                  setImageScale(draft.config.uploadedImageScale ?? 100);
+                                  setImageOffset(draft.config.uploadedImageOffset ?? { x: 0, y: 0 });
+                                  setTextElements(draft.config.textElements ?? []);
+                                  setCanvasShape(draft.config.selectedShape ?? 'square');
+                                  setIsCustomizing(true);
+                                  toast(`Loaded saved draft: ${draft.name}`, 'info');
+                                }
+                              }}
+                            >
+                              Load
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                } catch(e) {
+                  return null;
+                }
+              })()}
             </div>
           )}
 
@@ -1598,14 +1725,43 @@ export default function ProductDetailPage({ params }: PageProps) {
                 transition={{ duration: 0.25 }}
                 className="relative h-full w-full"
               >
-                <Image
-                  src={activeImage}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
+                {(() => {
+                  let cropStyle: React.CSSProperties = {};
+                  if (product.cropConfig) {
+                    try {
+                      const crop = JSON.parse(product.cropConfig);
+                      const width = crop.width || 100;
+                      const height = crop.height || 100;
+                      const left = crop.left || 0;
+                      const top = crop.top || 0;
+                      const scaleX = 100 / width;
+                      const scaleY = 100 / height;
+                      cropStyle = {
+                        width: `${scaleX * 100}%`,
+                        height: `${scaleY * 100}%`,
+                        left: `${-left * scaleX}%`,
+                        top: `${-top * scaleY}%`,
+                        maxWidth: 'none',
+                        position: 'absolute'
+                      };
+                    } catch (e) {}
+                  }
+                  return (
+                    <div
+                      className="absolute inset-0"
+                      style={Object.keys(cropStyle).length > 0 ? cropStyle : undefined}
+                    >
+                      <Image
+                        src={activeImage}
+                        alt={product.name}
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    </div>
+                  );
+                })()}
               </motion.div>
             </AnimatePresence>
             <div className="absolute top-4 left-4">
@@ -1628,13 +1784,42 @@ export default function ProductDetailPage({ params }: PageProps) {
                       : 'border-slate-100 opacity-70 hover:opacity-100'
                   }`}
                 >
-                  <Image
-                    src={img.imageUrl}
-                    alt={img.altText || `thumbnail ${idx}`}
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                  />
+                  {(() => {
+                    let cropStyle: React.CSSProperties = {};
+                    if (product.cropConfig) {
+                      try {
+                        const crop = JSON.parse(product.cropConfig);
+                        const width = crop.width || 100;
+                        const height = crop.height || 100;
+                        const left = crop.left || 0;
+                        const top = crop.top || 0;
+                        const scaleX = 100 / width;
+                        const scaleY = 100 / height;
+                        cropStyle = {
+                          width: `${scaleX * 100}%`,
+                          height: `${scaleY * 100}%`,
+                          left: `${-left * scaleX}%`,
+                          top: `${-top * scaleY}%`,
+                          maxWidth: 'none',
+                          position: 'absolute'
+                        };
+                      } catch (e) {}
+                    }
+                    return (
+                      <div
+                        className="absolute inset-0"
+                        style={Object.keys(cropStyle).length > 0 ? cropStyle : undefined}
+                      >
+                        <Image
+                          src={img.imageUrl}
+                          alt={img.altText || `thumbnail ${idx}`}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
+                      </div>
+                    );
+                  })()}
                 </button>
               ))}
             </div>
@@ -1729,10 +1914,13 @@ export default function ProductDetailPage({ params }: PageProps) {
           {product.variants && product.variants.length > 0 && (
             <div className="space-y-2.5 border-t border-slate-100 pt-4 dark:border-slate-800/40">
               <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Select Option</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400">{language === 'hi' ? 'विकल्प चुनें' : 'Select Option'}</h3>
                 {activeVariant && (
                   <span className={`text-[10px] font-bold ${activeVariant.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                    {activeVariant.stock > 0 ? `In Stock (${activeVariant.stock} left)` : 'Out of Stock'}
+                    {activeVariant.stock > 0 
+                      ? (language === 'hi' ? `स्टॉक में (${activeVariant.stock} शेष)` : `In Stock (${activeVariant.stock} left)`)
+                      : (language === 'hi' ? 'स्टॉक में नहीं' : 'Out of Stock')
+                    }
                   </span>
                 )}
               </div>
@@ -1760,9 +1948,9 @@ export default function ProductDetailPage({ params }: PageProps) {
             <div className="border-t border-slate-100 pt-4 dark:border-slate-800/40">
               <Button
                 onClick={() => setIsCustomizing(true)}
-                className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs h-10 shadow-sm flex items-center justify-center gap-1.5"
+                className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-black text-xs h-12 shadow-md flex items-center justify-center gap-2 tracking-wide uppercase"
               >
-                <Palette className="h-4.5 w-4.5 text-orange-500" /> Open Customization Studio
+                <Palette className="h-4.5 w-4.5 text-slate-900" /> {language === 'hi' ? 'कस्टमाइज़ेशन शुरू करें' : 'Start Customization'}
               </Button>
             </div>
           )}
@@ -1771,7 +1959,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           {product.customizationAvailable && (
             <div className="space-y-2.5 border-t border-slate-100 pt-4 dark:border-slate-800/40">
               <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400">Or Upload Finished Design</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-wider text-slate-400">{language === 'hi' ? 'या तैयार डिज़ाइन अपलोड करें' : 'Or Upload Finished Design'}</h3>
                 <span className="text-[9px] text-slate-400">PDF, SVG, PNG, JPG, AI (Max 10MB)</span>
               </div>
               
@@ -1800,7 +1988,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 {uploading ? (
                   <div className="space-y-1.5">
                     <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
-                    <p className="text-[11px] font-bold text-slate-500">Uploading your artwork...</p>
+                    <p className="text-[11px] font-bold text-slate-500">{language === 'hi' ? 'आपका आर्टवर्क अपलोड हो रहा है...' : 'Uploading your artwork...'}</p>
                   </div>
                 ) : designFile ? (
                   <div className="space-y-2 w-full">
@@ -1812,16 +2000,16 @@ export default function ProductDetailPage({ params }: PageProps) {
                         {designFile.name}
                       </p>
                       <p className="text-[10px] text-slate-450 font-medium">
-                        Artwork linked successfully.
+                        {language === 'hi' ? 'आर्टवर्क सफलतापूर्वक लिंक हो गया।' : 'Artwork linked successfully.'}
                       </p>
                     </div>
                     <div className="flex justify-center gap-2 text-[10px] font-bold">
                       <label htmlFor="artwork-upload" className="cursor-pointer text-orange-500 hover:text-orange-600">
-                        Replace File
+                        {language === 'hi' ? 'फ़ाइल बदलें' : 'Replace File'}
                       </label>
                       <span className="text-slate-200">|</span>
                       <button type="button" onClick={() => setDesignFile(null)} className="text-red-500 hover:text-red-650">
-                        Remove
+                        {language === 'hi' ? 'हटाएं' : 'Remove'}
                       </button>
                     </div>
                   </div>
@@ -1835,10 +2023,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                     </div>
                     <div className="space-y-0.5">
                       <p className="text-xs font-bold text-slate-700">
-                        Drag & drop artwork here, or <span className="text-orange-500 underline group-hover:no-underline">browse</span>
+                        {language === 'hi' ? 'यहाँ आर्टवर्क खींचें और छोड़ें, या ' : 'Drag & drop artwork here, or '}<span className="text-orange-500 underline group-hover:no-underline">{language === 'hi' ? 'ब्राउज़ करें' : 'browse'}</span>
                       </p>
                       <p className="text-[10px] text-slate-400 font-medium">
-                        Ready to print AI/SVG, PDF, PNG or JPG files
+                        {language === 'hi' ? 'तैयार AI/SVG, PDF, PNG या JPG फाइलें' : 'Ready to print AI/SVG, PDF, PNG or JPG files'}
                       </p>
                     </div>
                   </label>
@@ -1875,7 +2063,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 disabled={currentStock === 0 || isAdding}
                 className={`flex-1 flex items-center justify-center gap-1.5 ${currentStock === 0 ? 'bg-slate-100 text-slate-450 hover:bg-slate-100 border-none cursor-not-allowed dark:bg-slate-800 dark:text-slate-500' : 'bg-orange-500 hover:bg-orange-600 text-white'} font-bold text-xs h-10 shadow-sm`}
               >
-                <ShoppingBag className="h-4 w-4" /> {isAdding ? 'Adding...' : currentStock === 0 ? 'Sold Out' : 'Add to Order'}
+                <ShoppingBag className="h-4 w-4" /> {isAdding ? (language === 'hi' ? 'जोड़ा जा रहा है...' : 'Adding...') : currentStock === 0 ? (language === 'hi' ? 'बिक गया' : 'Sold Out') : (language === 'hi' ? 'ऑर्डर में जोड़ें' : 'Add to Order')}
               </Button>
               <Button
                 variant="outline"
@@ -1891,18 +2079,18 @@ export default function ProductDetailPage({ params }: PageProps) {
           <div className="grid grid-cols-3 gap-4 border-t border-slate-100 pt-4 text-center text-[10px] text-slate-400">
             <div className="space-y-1">
               <Truck className="mx-auto h-4 w-4 text-orange-500" />
-              <div className="font-bold text-slate-700">Fast Shipping</div>
-              <div>Dispatched 48h</div>
+              <div className="font-bold text-slate-700">{language === 'hi' ? 'तेज़ शिपिंग' : 'Fast Shipping'}</div>
+              <div>{language === 'hi' ? '48 घंटे में प्रेषित' : 'Dispatched 48h'}</div>
             </div>
             <div className="space-y-1">
               <Shield className="mx-auto h-4 w-4 text-orange-500" />
-              <div className="font-bold text-slate-700">Premium Blanks</div>
-              <div>QA Guaranteed</div>
+              <div className="font-bold text-slate-700">{language === 'hi' ? 'प्रीमियम ब्लैंक्स' : 'Premium Blanks'}</div>
+              <div>{language === 'hi' ? 'गुणवत्ता सुनिश्चित' : 'QA Guaranteed'}</div>
             </div>
             <div className="space-y-1">
               <RotateCcw className="mx-auto h-4 w-4 text-orange-500" />
-              <div className="font-bold text-slate-700">Easy Resubmit</div>
-              <div>Free proofing layout</div>
+              <div className="font-bold text-slate-700">{language === 'hi' ? 'आसान पुन: सबमिशन' : 'Easy Resubmit'}</div>
+              <div>{language === 'hi' ? 'मुफ्त प्रूफिंग लेआउट' : 'Free proofing layout'}</div>
             </div>
           </div>
         </div>
@@ -1913,21 +2101,43 @@ export default function ProductDetailPage({ params }: PageProps) {
         <section className="space-y-4 border-t border-slate-100 pt-8 dark:border-slate-800/40">
           <div>
             <Badge className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/10 font-bold border-none text-[9px] tracking-wide rounded-full px-2 py-0.5">
-              Complete the bundle
+              {language === 'hi' ? 'बंडल पूरा करें' : 'Complete the bundle'}
             </Badge>
             <h2 className="mt-1 text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">
-              Related Products
+              {language === 'hi' ? 'संबंधित उत्पाद' : 'Related Products'}
             </h2>
           </div>
 
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {relatedProducts.slice(0, 4).map((rp) => {
-              const rpImage = rp.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=400';
+              const rpImage = rp.images?.[0]?.imageUrl || rp.category?.masterImageUrl || rp.category?.imageUrl || 'https://images.unsplash.com/photo-1598257006458-087169a1f08d?auto=format&fit=crop&q=80&w=400';
               const { rating: rpRating, count: rpCount } = getRatingData(rp.id);
               
               let rpBadgeText = 'NEW';
               if (rp.category?.slug.includes('creative')) rpBadgeText = 'POPULAR';
               else if (rp.category?.slug.includes('modern')) rpBadgeText = 'BEST SELLER';
+
+              // Parse crop config for related product
+              let rpCropStyle: React.CSSProperties = {};
+              if (rp.cropConfig) {
+                try {
+                  const crop = JSON.parse(rp.cropConfig);
+                  const width = crop.width || 100;
+                  const height = crop.height || 100;
+                  const left = crop.left || 0;
+                  const top = crop.top || 0;
+                  const scaleX = 100 / width;
+                  const scaleY = 100 / height;
+                  rpCropStyle = {
+                    width: `${scaleX * 100}%`,
+                    height: `${scaleY * 100}%`,
+                    left: `${-left * scaleX}%`,
+                    top: `${-top * scaleY}%`,
+                    maxWidth: 'none',
+                    position: 'absolute'
+                  };
+                } catch (e) {}
+              }
 
               return (
                 <div 
@@ -1935,13 +2145,18 @@ export default function ProductDetailPage({ params }: PageProps) {
                   className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
                 >
                   <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-950">
-                    <Image
-                      src={rpImage}
-                      alt={rp.name}
-                      fill
-                      className="object-cover transition duration-300 group-hover:scale-105"
-                      sizes="220px"
-                    />
+                    <div
+                      className="absolute inset-0"
+                      style={Object.keys(rpCropStyle).length > 0 ? rpCropStyle : undefined}
+                    >
+                      <Image
+                        src={rpImage}
+                        alt={rp.name}
+                        fill
+                        className="object-cover transition duration-300 group-hover:scale-105"
+                        sizes="220px"
+                      />
+                    </div>
                     <div className="absolute left-2.5 top-2.5">
                       <Badge className="bg-orange-500 text-white font-black text-[8px] tracking-widest px-2 py-0.5 rounded-full border-none">
                         {rpBadgeText}

@@ -11,12 +11,14 @@ import { RecentlyViewed } from '@/components/recently-viewed';
 import { Recommendations } from '@/components/recommendations';
 import { User, ShieldCheck, Mail, Phone, Lock, Palette, ExternalLink, Calendar, Trash2, Edit } from 'lucide-react';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/language-context';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading, updateProfile, isUpdatingProfile, changePassword, isChangingPassword } = useAuth();
   const { orders, isLoadingOrders } = useOrders();
   const { toast } = useToast();
+  const { language, t } = useLanguage();
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -177,8 +179,8 @@ export default function ProfilePage() {
       >
         <Card className="flex flex-col items-center gap-6 p-6 sm:p-8 sm:flex-row border-slate-200/80 bg-white shadow-md dark:border-slate-800/60 dark:bg-slate-900">
           <div className="flex h-16 w-16 select-none items-center justify-center rounded-full bg-indigo-100 text-2xl font-bold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-            {user.firstName[0]}
-            {user.lastName[0]}
+            {user.firstName?.[0] || ''}
+            {user.lastName?.[0] || ''}
           </div>
           <div className="flex-grow space-y-1 text-center sm:text-left">
             <div className="flex flex-col sm:flex-row sm:items-center justify-center sm:justify-start gap-2">
@@ -206,21 +208,21 @@ export default function ProfilePage() {
               className="justify-start text-xs h-9"
               onClick={() => setActiveTab('info')}
             >
-              <User className="mr-2 h-4 w-4" /> Personal Settings
+              <User className="mr-2 h-4 w-4" /> {language === 'hi' ? 'व्यक्तिगत सेटिंग्स' : 'Personal Settings'}
             </Button>
             <Button
               variant={activeTab === 'password' ? 'default' : 'ghost'}
               className="justify-start text-xs h-9"
               onClick={() => setActiveTab('password')}
             >
-              <Lock className="mr-2 h-4 w-4" /> Change Password
+              <Lock className="mr-2 h-4 w-4" /> {language === 'hi' ? 'पासवर्ड बदलें' : 'Change Password'}
             </Button>
             <Button
               variant={activeTab === 'designs' ? 'default' : 'ghost'}
               className="justify-start text-xs h-9"
               onClick={() => setActiveTab('designs')}
             >
-              <Palette className="mr-2 h-4 w-4" /> Saved Designs ({allSavedDesigns.length})
+              <Palette className="mr-2 h-4 w-4" /> {language === 'hi' ? `सहेजे गए डिज़ाइन (${allSavedDesigns.length})` : `Saved Designs (${allSavedDesigns.length})`}
             </Button>
             <div className="border-t border-slate-100 dark:border-slate-800 my-2" />
             <Button
@@ -229,7 +231,7 @@ export default function ProfilePage() {
               asChild
             >
               <Link href="/profile/addresses">
-                <span className="mr-2">📍</span> Manage Addresses
+                <span className="mr-2">📍</span> {language === 'hi' ? 'पते प्रबंधित करें' : 'Manage Addresses'}
               </Link>
             </Button>
           </Card>
@@ -248,13 +250,13 @@ export default function ProfilePage() {
                 className="space-y-6"
               >
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 p-0 pb-3">
-                  <CardTitle className="text-base font-bold">Personal Settings</CardTitle>
+                  <CardTitle className="text-base font-bold">{language === 'hi' ? 'व्यक्तिगत सेटिंग्स' : 'Personal Settings'}</CardTitle>
                 </CardHeader>
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                        First Name
+                        {t('auth.firstNameLabel')}
                       </label>
                       <Input
                         type="text"
@@ -266,7 +268,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                        Last Name
+                        {t('auth.lastNameLabel')}
                       </label>
                       <Input
                         type="text"
@@ -280,13 +282,13 @@ export default function ProfilePage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> Email Address (Unchangeable)
+                        <Mail className="h-3 w-3" /> {language === 'hi' ? 'ईमेल पता (अपरिवर्तनीय)' : 'Email Address (Unchangeable)'}
                       </label>
                       <Input type="email" value={user.email} disabled className="opacity-60 cursor-not-allowed text-xs h-9" />
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                        <Phone className="h-3 w-3" /> Phone Number
+                        <Phone className="h-3 w-3" /> {t('auth.phoneLabel')}
                       </label>
                       <Input
                         type="text"
@@ -299,7 +301,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
                     <Button type="submit" disabled={isUpdatingProfile} className="text-xs h-9">
-                      {isUpdatingProfile ? 'Saving Changes...' : 'Save Settings'}
+                      {isUpdatingProfile ? (language === 'hi' ? 'सेटिंग्स सहेजी जा रही हैं...' : 'Saving Changes...') : (language === 'hi' ? 'सेटिंग्स सहेजें' : 'Save Settings')}
                     </Button>
                   </div>
                 </form>
@@ -316,12 +318,12 @@ export default function ProfilePage() {
                 className="space-y-6"
               >
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 p-0 pb-3">
-                  <CardTitle className="text-base font-bold">Update Account Password</CardTitle>
+                  <CardTitle className="text-base font-bold">{language === 'hi' ? 'खाता पासवर्ड अपडेट करें' : 'Update Account Password'}</CardTitle>
                 </CardHeader>
                 <form onSubmit={handleChangePassword} className="space-y-4">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Current Password
+                      {language === 'hi' ? 'वर्तमान पासवर्ड' : 'Current Password'}
                     </label>
                     <Input
                       type="password"
@@ -334,7 +336,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      New Password
+                      {t('auth.newPasswordLabel')}
                     </label>
                     <Input
                       type="password"
@@ -347,7 +349,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Confirm New Password
+                      {t('auth.confirmNewPasswordLabel')}
                     </label>
                     <Input
                       type="password"
@@ -360,7 +362,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex justify-end border-t border-slate-100 dark:border-slate-800 pt-4 mt-4">
                     <Button type="submit" disabled={isChangingPassword} className="text-xs h-9">
-                      {isChangingPassword ? 'Updating...' : 'Change Password'}
+                      {isChangingPassword ? t('auth.updating') : (language === 'hi' ? 'पासवर्ड बदलें' : 'Change Password')}
                     </Button>
                   </div>
                 </form>
@@ -377,7 +379,7 @@ export default function ProfilePage() {
                 className="space-y-6"
               >
                 <CardHeader className="border-b border-slate-100 dark:border-slate-800 p-0 pb-3">
-                  <CardTitle className="text-base font-bold">Custom Designs Library</CardTitle>
+                  <CardTitle className="text-base font-bold">{language === 'hi' ? 'कस्टम डिज़ाइन लाइब्रेरी' : 'Custom Designs Library'}</CardTitle>
                 </CardHeader>
 
                 {isLoadingOrders ? (
@@ -387,12 +389,12 @@ export default function ProfilePage() {
                 ) : allSavedDesigns.length === 0 ? (
                   <div className="text-center py-10">
                     <Palette className="h-10 w-10 text-slate-350 mx-auto mb-3" />
-                    <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">No custom designs stored</h4>
+                    <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{language === 'hi' ? 'कोई कस्टम डिज़ाइन सहेजा नहीं गया है' : 'No custom designs stored'}</h4>
                     <p className="text-xs text-slate-550 dark:text-slate-400 mt-1 max-w-[240px] mx-auto mb-6">
-                      Designs you customize and save or order appear here.
+                      {language === 'hi' ? 'जिन डिज़ाइनों को आप कस्टमाइज़ करते हैं और सहेजते हैं या ऑर्डर करते हैं, वे यहाँ दिखाई देंगे।' : 'Designs you customize and save or order appear here.'}
                     </p>
                     <Button asChild size="sm">
-                      <Link href="/products">Select Product Blank</Link>
+                      <Link href="/products">{language === 'hi' ? 'उत्पाद खाली चुनें' : 'Select Product Blank'}</Link>
                     </Button>
                   </div>
                 ) : (
@@ -409,7 +411,7 @@ export default function ProfilePage() {
                         <div className="min-w-0 flex-grow text-xs">
                           <p className="font-bold text-slate-800 dark:text-slate-200 truncate">{file.fileName}</p>
                           <p className={`text-[10px] font-medium mt-0.5 uppercase ${file.isDraft ? 'text-orange-500 font-bold' : 'text-slate-400'}`}>
-                            {file.isDraft ? 'DRAFT DURATION' : `${file.fileType.split('/').pop()} · Order ${file.orderNumber}`}
+                            {file.isDraft ? (language === 'hi' ? 'प्रारूप अवधि' : 'DRAFT DURATION') : `${file.fileType.split('/').pop()} · Order ${file.orderNumber}`}
                           </p>
                           <p className="text-[9px] text-slate-400 mt-1 font-semibold flex items-center gap-1">
                             <Calendar className="h-3 w-3" /> {new Date(file.createdAt).toLocaleDateString('en-IN')}
@@ -420,7 +422,7 @@ export default function ProfilePage() {
                             <>
                               <Button variant="outline" size="sm" asChild className="h-8 px-2.5 text-xs">
                                 <Link href={`/products/${file.productId}?draftId=${file.id}`} className="flex items-center gap-1">
-                                  <Edit className="h-3 w-3 text-orange-500" /> Resume
+                                  <Edit className="h-3 w-3 text-orange-500" /> {language === 'hi' ? 'जारी रखें' : 'Resume'}
                                 </Link>
                               </Button>
                               <Button 
@@ -435,7 +437,7 @@ export default function ProfilePage() {
                           ) : (
                             <Button variant="ghost" size="sm" asChild className="h-8 px-2.5 text-xs">
                               <a href={file.fileUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1">
-                                View <ExternalLink className="h-3 w-3" />
+                                {language === 'hi' ? 'देखें' : 'View'} <ExternalLink className="h-3 w-3" />
                               </a>
                             </Button>
                           )}

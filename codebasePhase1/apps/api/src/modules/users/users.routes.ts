@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { usersController } from './users.controller';
-import { authMiddleware, roleGuard, permissionGuard } from '@/middleware/auth';
-import { UserRole } from '@merko/types';
+import { authMiddleware, permissionGuard } from '@/middleware/auth';
 
 const router = Router();
 

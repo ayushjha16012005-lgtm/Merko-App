@@ -25,7 +25,7 @@ export class OrdersController {
       throw new UnauthorizedError();
     }
     const { id } = req.params;
-    const isAdmin = req.user.role === 'ADMIN';
+    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN' || req.user.isPlatformSuperAdmin;
     const order = await ordersService.getOrderById(req.user.id, id!, isAdmin);
     return sendSuccess(res, order);
   }

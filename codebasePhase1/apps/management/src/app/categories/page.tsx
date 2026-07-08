@@ -43,6 +43,13 @@ export default function AdminCategoriesPage() {
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [masterImageUrl, setMasterImageUrl] = useState('');
+  const [masterImage1, setMasterImage1] = useState('');
+  const [masterImage2, setMasterImage2] = useState('');
+  const [masterImage3, setMasterImage3] = useState('');
+  const [masterImage4, setMasterImage4] = useState('');
+  const [masterImage5, setMasterImage5] = useState('');
+  const [masterImage6, setMasterImage6] = useState('');
+  const [masterImage7, setMasterImage7] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [sortOrder, setSortOrder] = useState('0');
 
@@ -71,6 +78,13 @@ export default function AdminCategoriesPage() {
     setDescription('');
     setImageUrl('');
     setMasterImageUrl('');
+    setMasterImage1('');
+    setMasterImage2('');
+    setMasterImage3('');
+    setMasterImage4('');
+    setMasterImage5('');
+    setMasterImage6('');
+    setMasterImage7('');
     setSortOrder('0');
     setIsFormOpen(true);
   };
@@ -82,11 +96,18 @@ export default function AdminCategoriesPage() {
     setDescription(c.description || '');
     setImageUrl(c.imageUrl || '');
     setMasterImageUrl(c.masterImageUrl || '');
+    setMasterImage1(c.masterImage1 || '');
+    setMasterImage2(c.masterImage2 || '');
+    setMasterImage3(c.masterImage3 || '');
+    setMasterImage4(c.masterImage4 || '');
+    setMasterImage5(c.masterImage5 || '');
+    setMasterImage6(c.masterImage6 || '');
+    setMasterImage7(c.masterImage7 || '');
     setSortOrder(String(c.sortOrder));
     setIsFormOpen(true);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, slot: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -101,10 +122,21 @@ export default function AdminCategoriesPage() {
           fileData: base64Data,
         });
         const fileUrl = res.data.data.fileUrl;
-        setMasterImageUrl(fileUrl);
-        toast('Master image uploaded successfully!', 'success');
+        
+        if (slot === 1) {
+          setMasterImage1(fileUrl);
+          setMasterImageUrl(fileUrl); // fallback/compatibility
+        }
+        else if (slot === 2) setMasterImage2(fileUrl);
+        else if (slot === 3) setMasterImage3(fileUrl);
+        else if (slot === 4) setMasterImage4(fileUrl);
+        else if (slot === 5) setMasterImage5(fileUrl);
+        else if (slot === 6) setMasterImage6(fileUrl);
+        else if (slot === 7) setMasterImage7(fileUrl);
+
+        toast(`Master image ${slot} uploaded successfully!`, 'success');
       } catch (err) {
-        toast('Failed to upload master image.', 'error');
+        toast(`Failed to upload master image ${slot}.`, 'error');
       } finally {
         setIsUploading(false);
       }
@@ -136,7 +168,14 @@ export default function AdminCategoriesPage() {
       slug,
       description: description || undefined,
       imageUrl: imageUrl || undefined,
-      masterImageUrl: masterImageUrl || undefined,
+      masterImageUrl: masterImage1 || masterImageUrl || undefined,
+      masterImage1: masterImage1,
+      masterImage2: masterImage2,
+      masterImage3: masterImage3,
+      masterImage4: masterImage4,
+      masterImage5: masterImage5,
+      masterImage6: masterImage6,
+      masterImage7: masterImage7,
       sortOrder: Number(sortOrder) || 0,
     };
 
@@ -265,12 +304,12 @@ export default function AdminCategoriesPage() {
                     </td>
                   </tr>
                 ) : (
-                  categories.map((c) => (
+                  categories.map((c: CategoryResponseDto) => (
                     <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/20 transition">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <div className="h-9 w-9 overflow-hidden rounded bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 text-sm flex items-center justify-center" title="Thumbnail Image">
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="h-9 w-9 overflow-hidden rounded bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 text-sm flex items-center justify-center shrink-0" title="Category Thumbnail">
                               {c.imageUrl ? (
                                 /* eslint-disable-next-line @next/next/no-img-element */
                                 <img src={c.imageUrl} alt="" className="object-cover h-full w-full" />
@@ -278,13 +317,17 @@ export default function AdminCategoriesPage() {
                                 '📁'
                               )}
                             </div>
-                            <div className="h-9 w-9 overflow-hidden rounded bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-800 text-sm flex items-center justify-center" title="Master Category Sheet Image">
-                              {c.masterImageUrl ? (
-                                /* eslint-disable-next-line @next/next/no-img-element */
-                                <img src={c.masterImageUrl} alt="" className="object-cover h-full w-full" />
-                              ) : (
-                                '🖼️'
-                              )}
+                            <div className="flex gap-0.5 border border-slate-200/60 dark:border-slate-800/60 rounded p-0.5 bg-slate-50/50 dark:bg-slate-950/20">
+                              {[c.masterImage1, c.masterImage2, c.masterImage3, c.masterImage4, c.masterImage5, c.masterImage6, c.masterImage7].map((mImg, slotIdx) => (
+                                <div key={slotIdx} className="h-6 w-6 overflow-hidden rounded bg-slate-100 dark:bg-slate-900 text-[8px] flex items-center justify-center text-slate-400 shrink-0" title={`Master Image ${slotIdx + 1}`}>
+                                  {mImg ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
+                                    <img src={mImg} alt="" className="object-cover h-full w-full" />
+                                  ) : (
+                                    '·'
+                                  )}
+                                </div>
+                              ))}
                             </div>
                           </div>
                           <div>
@@ -398,44 +441,63 @@ export default function AdminCategoriesPage() {
             />
           </div>
 
-          {/* Master Category Image Upload */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Master Category Image Sheet</label>
-            <div className="flex gap-2 items-center">
-              <Input
-                value={masterImageUrl}
-                onChange={(e) => setMasterImageUrl(e.target.value)}
-                placeholder="Upload or enter sheet image URL..."
-                className="flex-grow"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="relative shrink-0 text-xs h-9 font-semibold"
-                disabled={isUploading}
-              >
-                {isUploading ? 'Uploading...' : 'Upload'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
-              </Button>
+          {/* Master Category Images (7 Slots) */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Master Category Images (7 Slots)</label>
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7].map((slot) => {
+                const currentVal = 
+                  slot === 1 ? masterImage1 :
+                  slot === 2 ? masterImage2 :
+                  slot === 3 ? masterImage3 :
+                  slot === 4 ? masterImage4 :
+                  slot === 5 ? masterImage5 :
+                  slot === 6 ? masterImage6 :
+                  masterImage7;
+                
+                const setter = 
+                  slot === 1 ? setMasterImage1 :
+                  slot === 2 ? setMasterImage2 :
+                  slot === 3 ? setMasterImage3 :
+                  slot === 4 ? setMasterImage4 :
+                  slot === 5 ? setMasterImage5 :
+                  slot === 6 ? setMasterImage6 :
+                  setMasterImage7;
+
+                return (
+                  <div key={slot} className="relative flex flex-col items-center justify-center border border-dashed border-slate-200 dark:border-slate-800 rounded-lg p-2 bg-slate-50/50 dark:bg-slate-950/20 group">
+                    <span className="text-[9px] font-bold text-slate-400 mb-1">Slot {slot}</span>
+                    {currentVal ? (
+                      <div className="relative h-12 w-full border border-slate-200 dark:border-slate-800 rounded overflow-hidden">
+                        <img src={currentVal} alt={`Slot ${slot}`} className="object-cover h-full w-full" />
+                        <button
+                          type="button"
+                          onClick={() => setter('')}
+                          className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 text-[8px] font-bold h-3.5 w-3.5 flex items-center justify-center shadow"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="relative text-[10px] h-8 w-full p-0 font-medium"
+                        disabled={isUploading}
+                      >
+                        Upload
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileUpload(e, slot)}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-            {masterImageUrl && (
-              <div className="mt-2 relative h-20 w-32 border border-slate-200 rounded overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={masterImageUrl} alt="Master Sheet Preview" className="object-cover h-full w-full" />
-                <button
-                  type="button"
-                  onClick={() => setMasterImageUrl('')}
-                  className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 text-[8px] font-bold h-4 w-4 flex items-center justify-center shadow"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Description */}

@@ -9,6 +9,7 @@ export interface User {
   lastName: string;
   phone?: string | null;
   role: UserRole;
+  languagePreference?: string;
 }
 
 interface AuthState {

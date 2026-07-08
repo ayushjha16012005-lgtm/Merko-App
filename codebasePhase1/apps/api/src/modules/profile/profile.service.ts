@@ -75,7 +75,7 @@ export class ProfileService {
     return profileRepository.updateAddress(addressId, { isDefault: true });
   }
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string }) {
+  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; languagePreference?: string }) {
     const user = await profileRepository.updateProfile(userId, data);
     return {
       id: user.id,
@@ -84,6 +84,7 @@ export class ProfileService {
       lastName: user.lastName,
       phone: user.phone,
       role: user.role,
+      languagePreference: user.languagePreference,
     };
   }
 }

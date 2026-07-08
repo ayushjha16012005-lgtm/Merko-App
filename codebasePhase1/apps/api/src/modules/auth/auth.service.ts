@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { authRepository } from './auth.repository';
-import { UnauthorizedError, NotFoundError, ForbiddenError } from '@/errors';
+import { UnauthorizedError, NotFoundError, ValidationError } from '@/errors';
 import { generateAccessToken, generateRefreshToken } from '@/lib/auth-tokens';
 import type { CreateUserDto, UserRole, UserStatus } from '@merko/types';
 import { emailService } from '@/modules/email/email.service';
@@ -10,11 +10,18 @@ export class AuthService {
   async register(data: CreateUserDto) {
     const existing = await authRepository.findUserByEmail(data.email);
     if (existing) {
-      throw new ForbiddenError('Email already registered');
+      throw new ValidationError([{ field: 'email', message: 'Email already registered.' }], 'Email already registered.');
+    }
+
+    if (data.phone && data.phone.trim() !== '') {
+      const existingPhone = await authRepository.findUserByPhone(data.phone);
+      if (existingPhone) {
+        throw new ValidationError([{ field: 'phone', message: 'Phone number already registered.' }], 'Phone number already registered.');
+      }
     }
 
     if (!data.password) {
-      throw new ForbiddenError('Password is required');
+      throw new ValidationError([{ field: 'password', message: 'Password is required' }], 'Password is required');
     }
 
     // Default status: ADMIN is PENDING_APPROVAL, CUSTOMER is ACTIVE
@@ -36,6 +43,7 @@ export class AuthService {
       status: user.status as UserStatus,
       isPlatformSuperAdmin: user.isPlatformSuperAdmin,
       permissions: user.permissions ? user.permissions.split(',') : [],
+      languagePreference: user.languagePreference,
     };
 
     if (status === 'PENDING_APPROVAL') {
@@ -59,16 +67,16 @@ export class AuthService {
     }
 
     if (user.status === 'PENDING_APPROVAL') {
-      throw new UnauthorizedError('Your account is pending approval. You can access the management portal once approved.');
+      throw new UnauthorizedError('Your account is awaiting approval.');
     }
     if (user.status === 'PENDING_ACTIVATION') {
       throw new UnauthorizedError('Your account invitation is pending activation. Please follow the instructions sent to your email.');
     }
     if (user.status === 'REJECTED') {
-      throw new UnauthorizedError('Your request has been rejected.');
+      throw new UnauthorizedError('Your account request was rejected.');
     }
     if (user.status === 'SUSPENDED') {
-      throw new UnauthorizedError('Your account has been suspended.');
+      throw new UnauthorizedError('Your account has been suspended. Please contact the platform administrator.');
     }
     if (user.status !== 'ACTIVE' || !user.isActive) {
       throw new UnauthorizedError('User account is not active');
@@ -88,6 +96,7 @@ export class AuthService {
       status: user.status as UserStatus,
       isPlatformSuperAdmin: user.isPlatformSuperAdmin,
       permissions: user.permissions ? user.permissions.split(',') : [],
+      languagePreference: user.languagePreference,
     };
 
     const accessToken = generateAccessToken(userPayload);
@@ -135,6 +144,7 @@ export class AuthService {
       status: user.status as UserStatus,
       isPlatformSuperAdmin: user.isPlatformSuperAdmin,
       permissions: user.permissions ? user.permissions.split(',') : [],
+      languagePreference: user.languagePreference,
     };
 
     const newAccessToken = generateAccessToken(userPayload);
@@ -160,7 +170,7 @@ export class AuthService {
 
     await authRepository.createPasswordResetToken(user.id, token, expiresAt);
 
-    console.log(`[PASSWORD RESET] Link for ${email}: http://localhost:3000/reset-password?token=${token}`);
+    emailService.sendPasswordResetEmail(email, token);
     
     return { success: true, token };
   }

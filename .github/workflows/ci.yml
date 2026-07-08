@@ -1,20 +1,20 @@
-name: CI
+name: Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  validate:
+  quality-gates:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -22,22 +22,35 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9.0.0
+          version: 9
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Get pnpm cache directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
 
-      - name: Prisma Validate
-        run: pnpm --filter @merko/api prisma:validate
-        env:
-          DATABASE_URL: postgresql://postgres:password@localhost:5432/merko
-          DIRECT_URL: postgresql://postgres:password@localhost:5432/merko
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
-      - name: Lint Checks
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Linter
         run: pnpm lint
 
-      - name: Type Checks
+      - name: Check TypeScript Compilation
         run: pnpm typecheck
 
-      - name: Build Projects
+      - name: Verify Prisma Schema
+        run: pnpm -w run prisma:validate
+        working-directory: ./apps/api
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/merko?schema=public"
+
+      - name: Build Application
         run: pnpm build

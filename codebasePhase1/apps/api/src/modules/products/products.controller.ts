@@ -39,14 +39,14 @@ export async function createProduct(req: Request, res: Response): Promise<Respon
     const user = req.user!;
     const isPlatformSuperAdminOrSuperAdmin = user.role === 'SUPER_ADMIN' || user.isPlatformSuperAdmin;
     const permissions = user.permissions?.map((p: string) => p.toLowerCase()) || [];
-    const hasPayments = isPlatformSuperAdminOrSuperAdmin || permissions.includes('payments');
+    const hasPayments = isPlatformSuperAdminOrSuperAdmin || permissions.includes('payments') || permissions.some(p => p.startsWith('payments:'));
 
     if (!hasPayments) {
       if (
         req.body.basePrice !== undefined ||
         req.body.discountType !== undefined ||
         req.body.discountValue !== undefined ||
-        (req.body.variants && req.body.variants.some((v: any) => v.price !== undefined))
+        (req.body.variants && req.body.variants.some((v: { price?: number }) => v.price !== undefined))
       ) {
         throw new ForbiddenError('You do not have permission to modify pricing or discount attributes');
       }
@@ -85,14 +85,14 @@ export async function updateProduct(req: Request, res: Response): Promise<Respon
     const user = req.user!;
     const isPlatformSuperAdminOrSuperAdmin = user.role === 'SUPER_ADMIN' || user.isPlatformSuperAdmin;
     const permissions = user.permissions?.map((p: string) => p.toLowerCase()) || [];
-    const hasPayments = isPlatformSuperAdminOrSuperAdmin || permissions.includes('payments');
+    const hasPayments = isPlatformSuperAdminOrSuperAdmin || permissions.includes('payments') || permissions.some(p => p.startsWith('payments:'));
 
     if (!hasPayments) {
       if (
         req.body.basePrice !== undefined ||
         req.body.discountType !== undefined ||
         req.body.discountValue !== undefined ||
-        (req.body.variants && req.body.variants.some((v: any) => v.price !== undefined))
+        (req.body.variants && req.body.variants.some((v: { price?: number }) => v.price !== undefined))
       ) {
         throw new ForbiddenError('You do not have permission to modify pricing or discount attributes');
       }

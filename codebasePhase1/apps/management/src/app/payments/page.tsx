@@ -10,6 +10,7 @@ import {
   Search, TrendingUp, AlertCircle, ShoppingBag, RotateCcw
 } from 'lucide-react';
 import type { OrderResponseDto } from '@merko/types';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function AdminPaymentsPage() {
   const { toast } = useToast();
@@ -22,6 +23,7 @@ export default function AdminPaymentsPage() {
     limit: 1000 // Get high limits to show operational payments ledger
   });
 
+  const { user } = useAuthStore();
   const createRefund = useCreateRefund();
 
   // Refund dialog states
@@ -29,6 +31,16 @@ export default function AdminPaymentsPage() {
   const [isRefundOpen, setIsRefundOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
+  
+  if (user?.role === 'ADMIN' && !user?.permissions?.includes('payments')) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="h-16 w-16 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Access Denied</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-2">You do not have permission to view payments.</p>
+      </div>
+    );
+  }
 
   const orders = adminOrders?.items || [];
 

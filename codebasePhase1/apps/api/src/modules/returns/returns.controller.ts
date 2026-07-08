@@ -38,7 +38,7 @@ export class ReturnsController {
       throw new UnauthorizedError();
     }
     const { id } = req.params;
-    const isAdmin = req.user.role === 'ADMIN';
+    const isAdmin = req.user.role === 'ADMIN' || req.user.role === 'SUPER_ADMIN' || req.user.isPlatformSuperAdmin;
     const result = await returnsService.getReturnById(id!, req.user.id, isAdmin);
     return sendSuccess(res, result);
   }

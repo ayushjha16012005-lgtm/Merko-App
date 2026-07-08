@@ -51,13 +51,27 @@ export class CategoriesRepository {
   }
 
   async create(data: CreateCategoryInput): Promise<Category> {
-    return prisma.category.create({ data });
+    const processedData = { ...data };
+    for (let i = 1; i <= 7; i++) {
+      const key = `masterImage${i}` as keyof CreateCategoryInput;
+      if (processedData[key] === '') {
+        (processedData as any)[key] = null;
+      }
+    }
+    return prisma.category.create({ data: processedData });
   }
 
   async update(id: string, data: UpdateCategoryInput): Promise<Category> {
+    const processedData = { ...data };
+    for (let i = 1; i <= 7; i++) {
+      const key = `masterImage${i}` as keyof UpdateCategoryInput;
+      if (processedData[key] === '') {
+        (processedData as any)[key] = null;
+      }
+    }
     return prisma.category.update({
       where: { id },
-      data,
+      data: processedData,
     });
   }
 

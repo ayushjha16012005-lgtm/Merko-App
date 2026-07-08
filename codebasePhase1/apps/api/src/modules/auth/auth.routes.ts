@@ -16,8 +16,8 @@ import {
 
 const router = Router();
 
-// Define a 15-minute rate limit for login and registration requests (max 10 tries)
-const authRateLimiter = rateLimiter(10, 15 * 60 * 1000);
+const isDev = process.env.NODE_ENV !== 'production';
+const authRateLimiter = rateLimiter(isDev ? 500 : 10, 15 * 60 * 1000);
 
 router.post('/register', authRateLimiter, validateBody(registerSchema), asyncHandler(authController.register));
 router.post('/login', authRateLimiter, validateBody(loginSchema), asyncHandler(authController.login));

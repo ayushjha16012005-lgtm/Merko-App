@@ -15,9 +15,10 @@ interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
 }
 
-export function Select({ value, onChange, options, placeholder = 'Select option...', className }: SelectProps) {
+export function Select({ value, onChange, options, placeholder = 'Select option...', className, disabled }: SelectProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
@@ -37,8 +38,12 @@ export function Select({ value, onChange, options, placeholder = 'Select option.
     <div ref={containerRef} className={cn('relative w-full', className)}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex h-10 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={cn(
+          "flex h-10 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50",
+          disabled && "opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-900/50 text-slate-450 dark:text-slate-500"
+        )}
       >
         <span className={cn('block truncate', !selectedOption && 'text-slate-400 dark:text-slate-500')}>
           {selectedOption ? selectedOption.label : placeholder}

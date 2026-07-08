@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { paymentsRepository } from './payments.repository';
 import { prisma } from '@/config/db';
-import { AppError, NotFoundError } from '@/errors';
+import { AppError, NotFoundError, ForbiddenError } from '@/errors';
 
 const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_mockkeyid12345';
 const keySecret = process.env.RAZORPAY_KEY_SECRET || 'mocksecret1234567890abcdef';
@@ -163,7 +163,20 @@ export class PaymentsService {
     });
   }
 
-  async getPaymentByOrderId(orderId: string) {
+  async getPaymentByOrderId(orderId: string, userId: string, isAdmin: boolean) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { userId: true },
+    });
+
+    if (!order) {
+      throw new NotFoundError('Order not found');
+    }
+
+    if (!isAdmin && order.userId !== userId) {
+      throw new ForbiddenError('You do not have permission to view payment details for this order');
+    }
+
     return paymentsRepository.findPaymentByOrderId(orderId);
   }
 }

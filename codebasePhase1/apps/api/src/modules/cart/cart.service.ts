@@ -15,7 +15,7 @@ export class CartService {
   }
 
   async addItemToCart(userId: string, data: AddToCartDto) {
-    const { productVariantId, quantity, designFileUrl, designFileName, designFileType } = data;
+    const { productVariantId, quantity, designFileUrl, designFileName, designFileType, mockupUrl, designConfig } = data;
 
     if (quantity <= 0) {
       throw new AppError('Quantity must be greater than zero', 400);
@@ -40,7 +40,7 @@ export class CartService {
     const cart = await cartRepository.findOrCreateCart(userId);
 
     // 4. Check if item already in cart
-    const existingItem = await cartRepository.findCartItem(cart.id, productVariantId, designFileUrl);
+    const existingItem = await cartRepository.findCartItem(cart.id, productVariantId, designFileUrl, designConfig);
     if (existingItem) {
       const newQuantity = existingItem.quantity + quantity;
       if (variant.stock < newQuantity) {
@@ -54,7 +54,9 @@ export class CartService {
         quantity,
         designFileUrl,
         designFileName,
-        designFileType
+        designFileType,
+        designConfig,
+        mockupUrl
       );
     }
 

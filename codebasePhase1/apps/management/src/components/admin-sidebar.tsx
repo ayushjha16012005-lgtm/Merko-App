@@ -18,10 +18,14 @@ export function AdminSidebar() {
     { href: '/', label: 'Console Home', icon: Home },
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/orders', label: 'Order Pipeline', icon: ClipboardList },
-    { href: '/payments', label: 'Payments', icon: CreditCard },
+    ...(user?.role === 'SUPER_ADMIN' || user?.permissions?.includes('payments') 
+      ? [{ href: '/payments', label: 'Payments', icon: CreditCard }] 
+      : []),
     { href: '/shipments', label: 'Shipments', icon: Truck },
     { href: '/returns', label: 'Returns', icon: RotateCcw },
-    { href: '/refunds', label: 'Refunds', icon: DollarSign },
+    ...(user?.role === 'SUPER_ADMIN' || user?.permissions?.includes('payments') 
+      ? [{ href: '/refunds', label: 'Refunds', icon: DollarSign }] 
+      : []),
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
@@ -107,7 +111,7 @@ export function AdminSidebar() {
         <div className="flex items-center justify-between rounded-xl bg-slate-950/30 p-3 border border-slate-800/60">
           <div className="flex items-center space-x-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600/20 text-xs font-bold text-indigo-400">
-              {user ? `${user.firstName[0]}${user.lastName[0]}` : 'AD'}
+              {user ? `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}` : 'AD'}
             </div>
             <div className="text-xs">
               <p className="font-semibold leading-tight text-white">
@@ -118,10 +122,13 @@ export function AdminSidebar() {
           </div>
           <button
             onClick={() => logout()}
-            className="text-slate-500 hover:text-red-400 transition"
+            className="text-red-500 hover:opacity-80 transition shrink-0"
             title="Logout"
           >
-            ❌
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" />
+              <line x1="7" y1="12" x2="17" y2="12" stroke="currentColor" strokeWidth="2.5" />
+            </svg>
           </button>
         </div>
       </div>

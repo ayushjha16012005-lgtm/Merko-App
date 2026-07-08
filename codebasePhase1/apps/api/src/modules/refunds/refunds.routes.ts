@@ -3,8 +3,6 @@ import { refundsController } from './refunds.controller';
 import { asyncHandler } from '@/lib/async-handler';
 import { authMiddleware, validateBody, permissionGuard } from '@/middleware';
 import { createRefundSchema } from '@/middleware/validators';
-import { UserRole } from '@merko/types';
-
 const router = Router();
 
 router.use(authMiddleware);
